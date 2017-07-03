@@ -73,17 +73,17 @@ node {
       /* don't check out extension under ableC_Home because doing so would allow
        * the Makefiles to find ableC with the included search paths, but we want
        * to explicitly specify the path to ableC according to ABLEC_BASE */
-    checkout([ $class: 'GitSCM',
-               branches: scm.branches,
-               doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
-               extensions: [
-                 [ $class: 'RelativeTargetDirectory',
-                   relativeTargetDir: "extensions/${extension_name}"],
-                 [ $class: 'CleanCheckout']
-                 ],
-               submoduleCfg: scm.submoduleCfg,
-               userRemoteConfigs: scm.userRemoteConfigs
-             ])
+      checkout([ $class: 'GitSCM',
+                 branches: scm.branches,
+                 doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+                 extensions: [
+                   [ $class: 'RelativeTargetDirectory',
+                     relativeTargetDir: "extensions/${extension_name}"],
+                   [ $class: 'CleanCheckout']
+                   ],
+                 submoduleCfg: scm.submoduleCfg,
+                 userRemoteConfigs: scm.userRemoteConfigs
+               ])
 
       checkout([ $class: 'GitSCM',
                  branches: [[name: '*/develop']],
@@ -94,6 +94,30 @@ node {
                  ],
                  userRemoteConfigs: [
                    [url: 'https://github.com/melt-umn/ableC.git']
+                 ]
+               ])
+
+      // Checkout dependancies
+      checkout([ $class: 'GitSCM',
+                 branches: [[name: '*/develop']],
+                 extensions: [
+                   [ $class: 'RelativeTargetDirectory',
+                     relativeTargetDir: "extensions/ableC-templating"],
+                   [ $class: 'CleanCheckout']
+                 ],
+                 userRemoteConfigs: [
+                   [url: 'https://github.com/melt-umn/ableC-templating.git']
+                 ]
+               ])
+      checkout([ $class: 'GitSCM',
+                 branches: [[name: '*/develop']],
+                 extensions: [
+                   [ $class: 'RelativeTargetDirectory',
+                     relativeTargetDir: "extensions/ableC-string"],
+                   [ $class: 'CleanCheckout']
+                 ],
+                 userRemoteConfigs: [
+                   [url: 'https://github.com/melt-umn/ableC-string.git']
                  ]
                ])
 
