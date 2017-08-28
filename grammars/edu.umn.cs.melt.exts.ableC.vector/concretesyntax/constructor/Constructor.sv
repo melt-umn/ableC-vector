@@ -10,10 +10,10 @@ imports edu:umn:cs:melt:ableC:abstractsyntax:env;
 
 import edu:umn:cs:melt:exts:ableC:vector;
 
-marking terminal Vec_t /vec[\ ]*</ lexer classes {Ckeyword};
+marking terminal Vec_t 'vec' lexer classes {Ckeyword};
 
 concrete productions top::PrimaryExpr_c
-| Vec_t sub::TypeName_c '>' init::VectorInitializer_c
+| Vec_t '<' sub::TypeName_c '>' init::VectorInitializer_c
   { top.ast = init.ast;
     init.subTypeIn = sub.ast; }
 
