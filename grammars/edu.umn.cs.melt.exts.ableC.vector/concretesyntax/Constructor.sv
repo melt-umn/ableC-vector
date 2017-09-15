@@ -1,14 +1,4 @@
-grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax:constructor;
-
-imports edu:umn:cs:melt:ableC:concretesyntax;
-imports silver:langutil only ast;
-
-imports edu:umn:cs:melt:ableC:abstractsyntax;
-imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
-imports edu:umn:cs:melt:ableC:abstractsyntax:env;
---imports edu:umn:cs:melt:ableC:abstractsyntax:debug;
-
-import edu:umn:cs:melt:exts:ableC:vector;
+grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 
 marking terminal Vec_t /vec[\ ]*</ lexer classes {Ckeyword};
 
