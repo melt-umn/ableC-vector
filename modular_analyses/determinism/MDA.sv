@@ -7,10 +7,6 @@ grammar determinism;
 
 import edu:umn:cs:melt:ableC:host;
 
-copper_mda testTypeExpr(ablecParser) {
-  edu:umn:cs:melt:exts:ableC:vector:concretesyntax:typeExpr;
-}
-
-copper_mda testConstructor(ablecParser) {
-  edu:umn:cs:melt:exts:ableC:vector:concretesyntax:constructor;
+copper_mda testConcreteSyntax(ablecParser) {
+  edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 }
