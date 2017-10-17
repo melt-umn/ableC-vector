@@ -3,12 +3,12 @@ grammar edu:umn:cs:melt:exts:ableC:vector:abstractsyntax;
 imports silver:langutil;
 imports silver:langutil:pp;
 
-imports edu:umn:cs:melt:ableC:abstractsyntax hiding vectorType;
+imports edu:umn:cs:melt:ableC:abstractsyntax:host hiding vectorType;
 imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
 imports edu:umn:cs:melt:ableC:abstractsyntax:construction:parsing;
 imports edu:umn:cs:melt:ableC:abstractsyntax:env;
 imports edu:umn:cs:melt:ableC:abstractsyntax:substitution;
-imports edu:umn:cs:melt:ableC:abstractsyntax:overload as ovrld;
+imports edu:umn:cs:melt:ableC:abstractsyntax:overloadable as ovrld;
 --imports edu:umn:cs:melt:ableC:abstractsyntax:debug;
 
 imports edu:umn:cs:melt:exts:ableC:templating;
@@ -16,7 +16,7 @@ imports edu:umn:cs:melt:exts:ableC:string;
 
 global builtin::Location = builtinLoc("vector");
 
-aspect function ovrld:getAddOpOverload
+aspect function ovrld:getAddOverload
 Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 {
   overloads <-
@@ -28,24 +28,24 @@ Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 }
 
 aspect function ovrld:getSubscriptAssignOverload
-Maybe<(Expr ::= Expr Expr AssignOp Expr Location)> ::= t::Type env::Decorated Env
+Maybe<(Expr ::= Expr Expr (Expr ::= Expr Expr Location) Document Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair(
        "edu:umn:cs:melt:exts:ableC:vector:vector",
-       subscriptAssignVector(_, _, _, _, location=_))];
+       subscriptAssignVector(_, _, _, _, _, location=_))];
 }
 
 aspect function ovrld:getMemberAssignOverload
-Maybe<(Expr ::= Expr Boolean Name AssignOp Expr Location)> ::= t::Type env::Decorated Env
+Maybe<(Expr ::= Expr Boolean Name (Expr ::= Expr Expr Location) Document Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair(
        "edu:umn:cs:melt:exts:ableC:vector:vector",
-       memberAssignVector(_, _, _, _, _, location=_))];
+       memberAssignVector(_, _, _, _, _, _, location=_))];
 }
 
-aspect function ovrld:getEqualsOpOverload
+aspect function ovrld:getEqualsOverload
 Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 {
   overloads <-
@@ -105,7 +105,7 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name
 }
 
 abstract production memberAssignVector
-top::Expr ::= lhs::Expr deref::Boolean rhs::Name op::AssignOp val::Expr
+top::Expr ::= lhs::Expr deref::Boolean rhs::Name op::(Expr ::= Expr Expr Location) Document val::Expr
 {
   propagate substituted;
   
@@ -176,7 +176,7 @@ top::Expr ::= sub::TypeName e::Exprs
   e.vectorInitType = sub.typerep;
   
   local fwrd::Expr =
-    subExpr(
+    substExpr(
       [typedefSubstitution("__vector_type__", vectorTypeExpr(nilQualifier(), sub)),
        declRefSubstitution(
          "__new_vec__",
@@ -208,7 +208,8 @@ top::Exprs ::= h::Expr t::Exprs
         subscriptAssignVector(
           declRefExpr(name("_vec", location=builtin), location=builtin),
           mkIntConst(top.argumentPosition, builtin),
-          eqOp(location=builtin),
+          eqExpr(_, _, location=_),
+          text("="),
           h,
           location=builtin)),
       t.vectorInitTrans);
@@ -378,8 +379,7 @@ top::Expr ::= e1::Expr e2::Expr
                 nilExpr())),
             location=builtin))]),
         arraySubscriptExpr(
-          unaryOpExpr(
-            dereferenceOp(location=builtin),
+          dereferenceExpr(
             memberExpr(
               declRefExpr(name(vecTempName, location=builtin), location=builtin),
               false,
@@ -393,10 +393,10 @@ top::Expr ::= e1::Expr e2::Expr
 }
 
 abstract production subscriptAssignVector
-top::Expr ::= lhs::Expr index::Expr op::AssignOp rhs::Expr
+top::Expr ::= lhs::Expr index::Expr op::(Expr ::= Expr Expr Location) opPP::Document rhs::Expr
 {
   propagate substituted;
-  top.pp = pp"${lhs.pp}[${index.pp}] ${op.pp} ${rhs.pp}";
+  top.pp = pp"${lhs.pp}[${index.pp}] ${opPP} ${rhs.pp}";
   
   local subType::Type = vectorSubType(lhs.typerep, top.env);
   local vecTempName::String = "_vec_" ++ toString(genInt());
@@ -427,10 +427,9 @@ top::Expr ::= lhs::Expr index::Expr op::AssignOp rhs::Expr
                 declRefExpr(name(indexTempName, location=builtin), location=builtin),
                 nilExpr())),
             location=builtin))]),
-        binaryOpExpr(
+        op(
           arraySubscriptExpr(
-            unaryOpExpr(
-              dereferenceOp(location=builtin),
+            dereferenceExpr(
               memberExpr(
                 declRefExpr(name(vecTempName, location=builtin), location=builtin),
                 false,
@@ -438,9 +437,8 @@ top::Expr ::= lhs::Expr index::Expr op::AssignOp rhs::Expr
                 location=builtin),
               location=builtin),
             declRefExpr(name(indexTempName, location=builtin), location=builtin), location=builtin),
-          assignOp(op, location=builtin),
           rhs,
-          location=builtin),
+          builtin),
         location=builtin);
   
   forwards to mkErrorCheck(localErrors, fwrd);
