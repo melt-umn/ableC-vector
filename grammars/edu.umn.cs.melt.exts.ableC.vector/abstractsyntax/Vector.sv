@@ -28,21 +28,21 @@ Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 }
 
 aspect function ovrld:getSubscriptAssignOverload
-Maybe<(Expr ::= Expr Expr (Expr ::= Expr Expr Location) Document Expr Location)> ::= t::Type env::Decorated Env
+Maybe<(Expr ::= Expr Expr (Expr ::= Expr Expr Location) Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair(
        "edu:umn:cs:melt:exts:ableC:vector:vector",
-       subscriptAssignVector(_, _, _, _, _, location=_))];
+       subscriptAssignVector(_, _, _, _, location=_))];
 }
 
 aspect function ovrld:getMemberAssignOverload
-Maybe<(Expr ::= Expr Boolean Name (Expr ::= Expr Expr Location) Document Expr Location)> ::= t::Type env::Decorated Env
+Maybe<(Expr ::= Expr Boolean Name (Expr ::= Expr Expr Location) Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair(
        "edu:umn:cs:melt:exts:ableC:vector:vector",
-       memberAssignVector(_, _, _, _, _, _, location=_))];
+       memberAssignVector(_, _, _, _, _, location=_))];
 }
 
 aspect function ovrld:getEqualsOverload
@@ -105,7 +105,7 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name
 }
 
 abstract production memberAssignVector
-top::Expr ::= lhs::Expr deref::Boolean rhs::Name op::(Expr ::= Expr Expr Location) Document val::Expr
+top::Expr ::= lhs::Expr deref::Boolean rhs::Name op::(Expr ::= Expr Expr Location) val::Expr
 {
   propagate substituted;
   
@@ -393,10 +393,10 @@ top::Expr ::= e1::Expr e2::Expr
 }
 
 abstract production subscriptAssignVector
-top::Expr ::= lhs::Expr index::Expr op::(Expr ::= Expr Expr Location) opPP::Document rhs::Expr
+top::Expr ::= lhs::Expr index::Expr op::(Expr ::= Expr Expr Location) rhs::Expr
 {
   propagate substituted;
-  top.pp = pp"${lhs.pp}[${index.pp}] ${opPP} ${rhs.pp}";
+  top.pp = op(arraySubscriptExpr(lhs, index, location=builtin), rhs, builtin).pp;
   
   local subType::Type = vectorSubType(lhs.typerep, top.env);
   local vecTempName::String = "_vec_" ++ toString(genInt());
