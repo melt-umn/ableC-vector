@@ -209,7 +209,6 @@ top::Exprs ::= h::Expr t::Exprs
           declRefExpr(name("_vec", location=builtin), location=builtin),
           mkIntConst(top.argumentPosition, builtin),
           eqExpr(_, _, location=_),
-          text("="),
           h,
           location=builtin)),
       t.vectorInitTrans);
