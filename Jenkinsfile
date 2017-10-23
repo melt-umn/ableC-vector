@@ -85,44 +85,95 @@ node {
                  userRemoteConfigs: scm.userRemoteConfigs
                ])
 
-      checkout([ $class: 'GitSCM',
-//                 branches: [[name: '*/develop']],
-                 branches: [[name: '*/feature/type_qualifiers']],
-                 extensions: [
-                   [ $class: 'RelativeTargetDirectory',
-                     relativeTargetDir: 'ableC'],
-                   [ $class: 'CleanCheckout']
-                 ],
-                 userRemoteConfigs: [
-                   [url: 'https://github.com/melt-umn/ableC.git']
-                 ]
-               ])
+      /* Try checking out branches with the same name, if that fails then
+       * check out develop */
+      // Checkout ableC
+      try {
+        checkout([ $class: 'GitSCM',
+                   branches: scm.branches,
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'ableC'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC.git']
+                   ]
+                 ])
+      }
+      catch (e) {
+        checkout([ $class: 'GitSCM',
+                   branches: [[name: '*/develop']],
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'ableC'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC.git']
+                   ]
+                 ])
+      }
 
       // Checkout dependancies
-      checkout([ $class: 'GitSCM',
-//                 branches: [[name: '*/develop']],
-                 branches: [[name: '*/feature/type_qualifiers']],
-                 extensions: [
-                   [ $class: 'RelativeTargetDirectory',
-                     relativeTargetDir: "extensions/ableC-templating"],
-                   [ $class: 'CleanCheckout']
-                 ],
-                 userRemoteConfigs: [
-                   [url: 'https://github.com/melt-umn/ableC-templating.git']
-                 ]
-               ])
-      checkout([ $class: 'GitSCM',
-//                 branches: [[name: '*/develop']],
-                 branches: [[name: '*/feature/type_qualifiers']],
-                 extensions: [
-                   [ $class: 'RelativeTargetDirectory',
-                     relativeTargetDir: "extensions/ableC-string"],
-                   [ $class: 'CleanCheckout']
-                 ],
-                 userRemoteConfigs: [
-                   [url: 'https://github.com/melt-umn/ableC-string.git']
-                 ]
-               ])
+      try {
+        checkout([ $class: 'GitSCM',
+                   branches: scm.branches,
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'extensions/ableC-templating'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC-templating.git']
+                   ]
+                 ])
+      }
+      catch (e) {
+        checkout([ $class: 'GitSCM',
+                   branches: [[name: '*/develop']],
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'extensions/ableC-templating'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC-templating.git']
+                   ]
+                 ])
+      }
+      try {
+        checkout([ $class: 'GitSCM',
+                   branches: scm.branches,
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'extensions/ableC-string'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC-string.git']
+                   ]
+                 ])
+      }
+      catch (e) {
+        checkout([ $class: 'GitSCM',
+                   branches: [[name: '*/develop']],
+                   doGenerateSubmoduleConfigurations: false,
+                   extensions: [
+                     [ $class: 'RelativeTargetDirectory',
+                       relativeTargetDir: 'extensions/ableC-string'],
+                     [ $class: 'CleanCheckout']
+                   ],
+                   userRemoteConfigs: [
+                     [url: 'https://github.com/melt-umn/ableC-string.git']
+                   ]
+                 ])
+      }
 
       /* env.PATH is the master's path, not the executor's */
       withEnv(env) {
