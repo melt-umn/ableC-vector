@@ -16,7 +16,7 @@ imports edu:umn:cs:melt:exts:ableC:string;
 
 global builtin::Location = builtinLoc("vector");
 
-aspect function ovrld:getAddOverload
+aspect function ovrld:getAddOverloadProd
 Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 {
   overloads <-
@@ -27,7 +27,7 @@ Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
        concatVector(_, _, location=_))];
 }
 
-aspect function ovrld:getSubscriptAssignOverload
+aspect function ovrld:getSubscriptAssignOverloadProd
 Maybe<(Expr ::= Expr Expr (Expr ::= Expr Expr Location) Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
@@ -36,7 +36,7 @@ Maybe<(Expr ::= Expr Expr (Expr ::= Expr Expr Location) Expr Location)> ::= t::T
        subscriptAssignVector(_, _, _, _, location=_))];
 }
 
-aspect function ovrld:getMemberAssignOverload
+aspect function ovrld:getMemberAssignOverloadProd
 Maybe<(Expr ::= Expr Boolean Name (Expr ::= Expr Expr Location) Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
@@ -45,7 +45,7 @@ Maybe<(Expr ::= Expr Boolean Name (Expr ::= Expr Expr Location) Expr Location)> 
        memberAssignVector(_, _, _, _, _, location=_))];
 }
 
-aspect function ovrld:getEqualsOverload
+aspect function ovrld:getEqualsOverloadProd
 Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
 {
   overloads <-
@@ -56,21 +56,21 @@ Maybe<(Expr ::= Expr Expr Location)> ::= l::Type r::Type env::Decorated Env
        eqVector(_, _, location=_))];
 }
 
-aspect function ovrld:getArraySubscriptOverload
+aspect function ovrld:getArraySubscriptOverloadProd
 Maybe<(Expr ::= Expr Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair("edu:umn:cs:melt:exts:ableC:vector:vector", subscriptVector(_, _, location=_))];
 }
 
-aspect function ovrld:getMemberOverload
+aspect function ovrld:getMemberOverloadProd
 Maybe<(Expr ::= Expr Boolean Name Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
     [pair("edu:umn:cs:melt:exts:ableC:vector:vector", memberVector(_, _, _, location=_))];
 }
 
-aspect function ovrld:getMemberCallOverload
+aspect function ovrld:getMemberCallOverloadProd
 Maybe<(Expr ::= Expr Boolean Name Exprs Location)> ::= t::Type env::Decorated Env
 {
   overloads <-
@@ -79,7 +79,7 @@ Maybe<(Expr ::= Expr Boolean Name Exprs Location)> ::= t::Type env::Decorated En
        memberCallVector(_, _, _, _, location=_))];
 }
 
-aspect function getShowOverload
+aspect function getShowOverloadProd
 Maybe<(Expr ::= Expr Location)> ::= t::Type env::Decorated Env
 {
   overloads <- [pair("edu:umn:cs:melt:exts:ableC:vector:vector", showVector(_, location=_))];
