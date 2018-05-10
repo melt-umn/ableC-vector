@@ -72,13 +72,13 @@ static vector<a> _copy_vector(vector<a> vec) {
 
 template<a>
 static void _append_vector(vector<a> vec, a elem) {
-  _resize_vector<a>(vec, vec.length + 1);
+  inst _resize_vector<a>(vec, vec.length + 1);
   (*vec._contents)[vec.length - 1] = elem;
 }
 
 template<a>
 static void _insert_vector(vector<a> vec, size_t idx, a elem) {
-  _resize_vector<a>(vec, vec.length + 1);
+  inst _resize_vector<a>(vec, vec.length + 1);
   
   for (size_t i = vec.length - 1; i > idx; i--) {
     vec[i] = vec[i - 1];
@@ -89,7 +89,7 @@ static void _insert_vector(vector<a> vec, size_t idx, a elem) {
 template<a>
 static void _extend_vector(vector<a> vec1, vector<a> vec2) {
   size_t vec1_length = vec1.length;
-  _resize_vector<a>(vec1, vec1.length + vec2.length);
+  inst _resize_vector<a>(vec1, vec1.length + vec2.length);
 
   for (size_t i = 0; i < vec2.length; i++) {
     (*vec1._contents)[i + vec1_length] = vec2[i];
