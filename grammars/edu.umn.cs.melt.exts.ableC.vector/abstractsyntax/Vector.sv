@@ -5,7 +5,6 @@ imports silver:langutil:pp;
 
 imports edu:umn:cs:melt:ableC:abstractsyntax:host hiding vectorType;
 imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
-imports edu:umn:cs:melt:ableC:abstractsyntax:construction:parsing;
 imports edu:umn:cs:melt:ableC:abstractsyntax:env;
 imports edu:umn:cs:melt:ableC:abstractsyntax:substitution;
 imports edu:umn:cs:melt:ableC:abstractsyntax:overloadable as ovrld;
@@ -142,23 +141,10 @@ top::Expr ::= sub::TypeName size::Expr
   
   sub.env = globalEnv(top.env);
   
-  local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_new_vector", location=builtin),
-        consTypeName(sub, nilTypeName()),
-        location=builtin),
-      consExpr(size, nilExpr()),
-      location=builtin);
+  local fwrd::Expr = ableC_Expr { inst _new_vector<$TypeName{sub}>($Expr{size}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
-
-global constructVectorFwrd::Expr = parseExpr(s"""
-({proto_typedef __vector_type__;
-  __vector_type__ _vec = __new_vec__;
-  __init__;
-  _vec;})""");
 
 abstract production constructVector
 top::Expr ::= sub::TypeName e::Exprs
@@ -176,16 +162,16 @@ top::Expr ::= sub::TypeName e::Exprs
   e.vectorInitType = sub.typerep;
   
   local fwrd::Expr =
-    substExpr(
-      [typedefSubstitution("__vector_type__", vectorTypeExpr(nilQualifier(), sub)),
-       declRefSubstitution(
-         "__new_vec__",
-         newVector(
-           typeName(directTypeExpr(sub.typerep), baseTypeExpr()),
-           mkIntConst(e.count, builtin),
-           location=builtin)),
-       stmtSubstitution("__init__", e.vectorInitTrans)],
-      constructVectorFwrd);
+    ableC_Expr {
+      ({$BaseTypeExpr{vectorTypeExpr(nilQualifier(), sub)} _vec =
+          $Expr{
+            newVector(
+              typeName(directTypeExpr(sub.typerep), baseTypeExpr()),
+              mkIntConst(e.count, builtin),
+              location=builtin)};
+        $Stmt{e.vectorInitTrans}
+        _vec;})
+    };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -203,15 +189,10 @@ top::Exprs ::= h::Expr t::Exprs
      then [err(h.location, s"Invalid type to vector initializer: Expected ${showType(top.vectorInitType)}, got ${showType(h.typerep)}")]
      else []) ++ t.vectorInitErrors;
   top.vectorInitTrans =
-    seqStmt(
-      exprStmt(
-        subscriptAssignVector(
-          declRefExpr(name("_vec", location=builtin), location=builtin),
-          mkIntConst(top.argumentPosition, builtin),
-          eqExpr(_, _, location=_),
-          h,
-          location=builtin)),
-      t.vectorInitTrans);
+    ableC_Stmt {
+      _vec[$Expr{mkIntConst(top.argumentPosition, builtin)}] = $Expr{h};
+      $Stmt{t.vectorInitTrans}
+    };
 }
 
 aspect production nilExpr
@@ -235,13 +216,7 @@ top::Expr ::= e::Expr
     then [err(e.location, s"Vector copy expected vector type, got ${showType(e.typerep)}")]
     else [];
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_copy_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(e, nilExpr()),
-      location=builtin);
+    ableC_Expr { inst _copy_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -256,16 +231,16 @@ top::Expr ::= e1::Expr e2::Expr
   local vecTempName::String = "_vec_" ++ toString(genInt());
   
   forwards to 
-    stmtExpr(
-      foldStmt([
-        mkDecl(vecTempName, vectorType(nilQualifier(), subType), copyVector(e1, location=builtin), builtin),
-        exprStmt(
+    ableC_Expr {
+      ({$BaseTypeExpr{directTypeExpr(vectorType(nilQualifier(), subType))} $Name{vecTempName} =
+          $Expr{copyVector(e1, location=builtin)};
+        $Expr{
           extendVector(
             declRefExpr(name(vecTempName, location=builtin), location=builtin),
             e2,
-            location=builtin))]),
-      declRefExpr(name(vecTempName, location=builtin), location=builtin),
-      location=builtin);
+            location=builtin)};
+        $Name{vecTempName};})
+    };
 }
 
 abstract production eqVector
@@ -283,13 +258,7 @@ top::Expr ::= e1::Expr e2::Expr
     then [err(top.location, s"Vector equality sub-types must be the same, got ${showType(e1.typerep)} and ${showType(e2.typerep)}")]
     else [];
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_eq_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(e1, consExpr(e2, nilExpr())),
-      location=builtin);
+    ableC_Expr { inst _eq_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e1}, $Expr{e2}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -301,12 +270,7 @@ top::Expr ::= e::Expr
   top.pp = pp"${e.pp}.length";
   
   local subType::Type = vectorSubType(e.typerep, top.env);
-  local fwrd::Expr =
-    memberExpr(
-      memberExpr(e, false, name("_info", location=builtin), location=builtin),
-      true,
-      name("length", location=builtin),
-      location=builtin);
+  local fwrd::Expr =  ableC_Expr { $Expr{e}._info->length };
   
   forwards to mkErrorCheck(checkVectorHeaderDef("_vector_s", top.location, top.env), fwrd);
 }
@@ -318,12 +282,7 @@ top::Expr ::= e::Expr
   top.pp = pp"${e.pp}.capacity";
 
   local subType::Type = vectorSubType(e.typerep, top.env);
-  local fwrd::Expr =
-    memberExpr(
-      memberExpr(e, false, name("_info", location=builtin), location=builtin),
-      true,
-      name("capacity", location=builtin),
-      location=builtin);
+  local fwrd::Expr =  ableC_Expr { $Expr{e}._info->capacity };
   
   forwards to mkErrorCheck(checkVectorHeaderDef("_vector_s", top.location, top.env), fwrd);
 }
@@ -335,12 +294,7 @@ top::Expr ::= e::Expr
   top.pp = pp"${e.pp}.elem_size";
   
   local subType::Type = vectorSubType(e.typerep, top.env);
-  local fwrd::Expr =
-    memberExpr(
-      memberExpr(e, false, name("_info", location=builtin), location=builtin),
-      true,
-      name("elem_size", location=builtin),
-      location=builtin);
+  local fwrd::Expr =  ableC_Expr { $Expr{e}._info->elem_size };
   
   forwards to mkErrorCheck(checkVectorHeaderDef("_vector_s", top.location, top.env), fwrd);
 }
@@ -360,33 +314,14 @@ top::Expr ::= e1::Expr e2::Expr
     if e2.typerep.isIntegerType
     then []
     else [err(e2.location, s"Vector index must have integer type, but got ${showType(e2.typerep)}")];
+  
   local fwrd::Expr =
-    stmtExpr(
-      foldStmt([
-        mkDecl(vecTempName, e1.typerep, e1, builtin),
-        mkDecl(indexTempName, e2.typerep, e2, builtin),
-        exprStmt(
-          callExpr(
-            templateDeclRefExpr(
-              name("_check_index_vector", location=builtin),
-              consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-              location=builtin),
-            consExpr(
-              declRefExpr(name(vecTempName, location=builtin), location=builtin),
-              consExpr(
-                declRefExpr(name(indexTempName, location=builtin), location=builtin),
-                nilExpr())),
-            location=builtin))]),
-        arraySubscriptExpr(
-          dereferenceExpr(
-            memberExpr(
-              declRefExpr(name(vecTempName, location=builtin), location=builtin),
-              false,
-              name("_contents", location=builtin),
-              location=builtin),
-            location=builtin),
-          declRefExpr(name(indexTempName, location=builtin), location=builtin), location=builtin),
-        location=builtin);
+    ableC_Expr {
+      ({$BaseTypeExpr{directTypeExpr(e1.typerep)} $Name{vecTempName} = $Expr{e1};
+        $BaseTypeExpr{directTypeExpr(e2.typerep)} $Name{indexTempName} = $Expr{e2};
+        inst _check_index_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Name{vecTempName}, $Name{indexTempName});
+        (*$Name{vecTempName}._contents)[$Name{indexTempName}];})
+    };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -409,36 +344,14 @@ top::Expr ::= lhs::Expr index::Expr op::(Expr ::= Expr Expr Location) rhs::Expr
     (if !typeAssignableTo(subType, rhs.typerep)
      then [err(top.location, s"Vector index assign sub-type and rhs type must be the same, got ${showType(subType)} and ${showType(rhs.typerep)}")]
      else []);
+  
   local fwrd::Expr =
-    stmtExpr(
-      foldStmt([
-        mkDecl(vecTempName, lhs.typerep, lhs, builtin),
-        mkDecl(indexTempName, index.typerep, index, builtin),
-        exprStmt(
-          callExpr(
-            templateDeclRefExpr(
-              name("_check_index_vector", location=builtin),
-              consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-              location=builtin),
-            consExpr(
-              declRefExpr(name(vecTempName, location=builtin), location=builtin),
-              consExpr(
-                declRefExpr(name(indexTempName, location=builtin), location=builtin),
-                nilExpr())),
-            location=builtin))]),
-        op(
-          arraySubscriptExpr(
-            dereferenceExpr(
-              memberExpr(
-                declRefExpr(name(vecTempName, location=builtin), location=builtin),
-                false,
-                name("_contents", location=builtin),
-                location=builtin),
-              location=builtin),
-            declRefExpr(name(indexTempName, location=builtin), location=builtin), location=builtin),
-          rhs,
-          builtin),
-        location=builtin);
+    ableC_Expr {
+      ({$BaseTypeExpr{directTypeExpr(lhs.typerep)} $Name{vecTempName} = $Expr{lhs};
+        $BaseTypeExpr{directTypeExpr(index.typerep)} $Name{indexTempName} = $Expr{index};
+        inst _check_index_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Name{vecTempName}, $Name{indexTempName});
+        $Expr{op(ableC_Expr { (*$Name{vecTempName}._contents)[$Name{indexTempName}] }, rhs, builtin)};})
+    };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -456,15 +369,11 @@ top::Expr ::= lhs::Expr elem::Expr
     if !compatibleTypes(subType, elem.typerep, true, false)
     then [err(top.location, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
     else [];
-
+  
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_append_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(lhs, consExpr(elem, nilExpr())),
-      location=builtin);
+    ableC_Expr {
+      inst _append_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{lhs}, $Expr{elem})
+    };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -485,15 +394,11 @@ top::Expr ::= lhs::Expr index::Expr elem::Expr
     (if !compatibleTypes(subType, index.typerep, true, false)
      then [err(top.location, s"Inserted type must be the same as vector sub-type, got ${showType(subType)} and ${showType(index.typerep)}")]
      else []);
-
+  
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_insert_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(lhs, consExpr(index, consExpr(elem, nilExpr()))),
-      location=builtin);
+    ableC_Expr {
+      inst _insert_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{lhs}, $Expr{index}, $Expr{elem})
+    };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -511,15 +416,9 @@ top::Expr ::= e1::Expr e2::Expr
     if !compatibleTypes(subType, vectorSubType(e2.typerep, top.env), true, false)
     then [err(top.location, s"Vector extend sub-types must be the same, got ${showType(e1.typerep)} and ${showType(e2.typerep)}")]
     else [];
-
+  
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_extend_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(e1, consExpr(e2, nilExpr())),
-      location=builtin);
+    ableC_Expr { inst _extend_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e1}, $Expr{e2}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -535,14 +434,9 @@ top::Expr ::= e::Expr
   local localErrors::[Message] =
     checkVectorHeaderDef("_show_vector", top.location, top.env) ++
     checkShowErrors(subType, top.env, top.location);
+  
   local fwrd::Expr =
-    callExpr(
-      templateDeclRefExpr(
-        name("_show_vector", location=builtin),
-        consTypeName(typeName(directTypeExpr(subType), baseTypeExpr()), nilTypeName()),
-        location=builtin),
-      consExpr(e, nilExpr()),
-      location=builtin);
+    ableC_Expr { inst _show_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }

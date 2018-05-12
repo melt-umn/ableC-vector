@@ -4,7 +4,7 @@ ABLEC_BASE?=../../../ableC
 # Path from current directory to top level extensions directory
 EXTS_BASE?=../../../extensions
 
-# The jar files to built
+# The jar files to build
 MDA_JAR=MDA.jar
 MWDA_JAR=MWDA.jar
 # The artifact specification grammars to compile
@@ -25,11 +25,11 @@ mwda: $(MWDA_JAR)
 
 $(MDA_JAR): $(GRAMMAR_SOURCES)
 	touch $(wildcard $(MDA_ARTIFACT)/*.sv)
-	silver -o $(MDA_JAR) $(SVFLAGS) $(MDA_ARTIFACT)
+	silver-ableC -o $(MDA_JAR) $(SVFLAGS) $(MDA_ARTIFACT)
 
 $(MWDA_JAR): $(GRAMMAR_SOURCES)
 	touch $(wildcard $(MWDA_ARTIFACT)/*.sv)
-	silver -o $(MWDA_JAR) $(SVFLAGS) --clean --warn-all --warn-error $(MWDA_ARTIFACT)
+	silver-ableC -o $(MWDA_JAR) $(SVFLAGS) --clean --warn-all --warn-error $(MWDA_ARTIFACT)
 
 clean:
 	rm -f *~ *.jar *.copperdump.html build.xml
