@@ -190,7 +190,7 @@ top::Exprs ::= h::Expr t::Exprs
      else []) ++ t.vectorInitErrors;
   top.vectorInitTrans =
     ableC_Stmt {
-      _vec[$Expr{mkIntConst(top.argumentPosition, builtin)}] = $Expr{h};
+      _vec[$intLiteralExpr{top.argumentPosition}] = $Expr{h};
       $Stmt{t.vectorInitTrans}
     };
 }
@@ -215,8 +215,7 @@ top::Expr ::= e::Expr
     if !isVectorType(e.typerep, top.env)
     then [err(e.location, s"Vector copy expected vector type, got ${showType(e.typerep)}")]
     else [];
-  local fwrd::Expr =
-    ableC_Expr { inst _copy_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e}) };
+  local fwrd::Expr = ableC_Expr { inst _copy_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -232,14 +231,14 @@ top::Expr ::= e1::Expr e2::Expr
   
   forwards to 
     ableC_Expr {
-      ({$BaseTypeExpr{directTypeExpr(vectorType(nilQualifier(), subType))} $Name{vecTempName} =
+      ({$BaseTypeExpr{directTypeExpr(vectorType(nilQualifier(), subType))} $name{vecTempName} =
           $Expr{copyVector(e1, location=builtin)};
         $Expr{
           extendVector(
             declRefExpr(name(vecTempName, location=builtin), location=builtin),
             e2,
             location=builtin)};
-        $Name{vecTempName};})
+        $name{vecTempName};})
     };
 }
 
@@ -257,8 +256,7 @@ top::Expr ::= e1::Expr e2::Expr
     if !compatibleTypes(subType, vectorSubType(e2.typerep, top.env), true, false)
     then [err(top.location, s"Vector equality sub-types must be the same, got ${showType(e1.typerep)} and ${showType(e2.typerep)}")]
     else [];
-  local fwrd::Expr =
-    ableC_Expr { inst _eq_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e1}, $Expr{e2}) };
+  local fwrd::Expr = ableC_Expr { inst _eq_vector<$directTypeExpr{subType}>($Expr{e1}, $Expr{e2}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -317,10 +315,10 @@ top::Expr ::= e1::Expr e2::Expr
   
   local fwrd::Expr =
     ableC_Expr {
-      ({$BaseTypeExpr{directTypeExpr(e1.typerep)} $Name{vecTempName} = $Expr{e1};
-        $BaseTypeExpr{directTypeExpr(e2.typerep)} $Name{indexTempName} = $Expr{e2};
-        inst _check_index_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Name{vecTempName}, $Name{indexTempName});
-        (*$Name{vecTempName}._contents)[$Name{indexTempName}];})
+      ({$directTypeExpr{e1.typerep} $name{vecTempName} = $Expr{e1};
+        $directTypeExpr{e2.typerep} $name{indexTempName} = $Expr{e2};
+        inst _check_index_vector<$directTypeExpr{subType}>($name{vecTempName}, $name{indexTempName});
+        (*$name{vecTempName}._contents)[$name{indexTempName}];})
     };
   
   forwards to mkErrorCheck(localErrors, fwrd);
@@ -347,10 +345,10 @@ top::Expr ::= lhs::Expr index::Expr op::(Expr ::= Expr Expr Location) rhs::Expr
   
   local fwrd::Expr =
     ableC_Expr {
-      ({$BaseTypeExpr{directTypeExpr(lhs.typerep)} $Name{vecTempName} = $Expr{lhs};
-        $BaseTypeExpr{directTypeExpr(index.typerep)} $Name{indexTempName} = $Expr{index};
-        inst _check_index_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Name{vecTempName}, $Name{indexTempName});
-        $Expr{op(ableC_Expr { (*$Name{vecTempName}._contents)[$Name{indexTempName}] }, rhs, builtin)};})
+      ({$directTypeExpr{lhs.typerep} $name{vecTempName} = $Expr{lhs};
+        $directTypeExpr{index.typerep} $name{indexTempName} = $Expr{index};
+        inst _check_index_vector<$directTypeExpr{subType}>($name{vecTempName}, $name{indexTempName});
+        $Expr{op(ableC_Expr { (*$name{vecTempName}._contents)[$name{indexTempName}] }, rhs, builtin)};})
     };
   
   forwards to mkErrorCheck(localErrors, fwrd);
@@ -370,10 +368,7 @@ top::Expr ::= lhs::Expr elem::Expr
     then [err(top.location, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
     else [];
   
-  local fwrd::Expr =
-    ableC_Expr {
-      inst _append_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{lhs}, $Expr{elem})
-    };
+  local fwrd::Expr = ableC_Expr { inst _append_vector<$directTypeExpr{subType}>($Expr{lhs}, $Expr{elem}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -396,9 +391,7 @@ top::Expr ::= lhs::Expr index::Expr elem::Expr
      else []);
   
   local fwrd::Expr =
-    ableC_Expr {
-      inst _insert_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{lhs}, $Expr{index}, $Expr{elem})
-    };
+    ableC_Expr { inst _insert_vector<$directTypeExpr{subType}>($Expr{lhs}, $Expr{index}, $Expr{elem}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -417,8 +410,7 @@ top::Expr ::= e1::Expr e2::Expr
     then [err(top.location, s"Vector extend sub-types must be the same, got ${showType(e1.typerep)} and ${showType(e2.typerep)}")]
     else [];
   
-  local fwrd::Expr =
-    ableC_Expr { inst _extend_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e1}, $Expr{e2}) };
+  local fwrd::Expr = ableC_Expr { inst _extend_vector<$directTypeExpr{subType}>($Expr{e1}, $Expr{e2}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -435,8 +427,7 @@ top::Expr ::= e::Expr
     checkVectorHeaderDef("_show_vector", top.location, top.env) ++
     checkShowErrors(subType, top.env, top.location);
   
-  local fwrd::Expr =
-    ableC_Expr { inst _show_vector<$BaseTypeExpr{directTypeExpr(subType)}>($Expr{e}) };
+  local fwrd::Expr = ableC_Expr { inst _show_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
