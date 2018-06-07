@@ -2,5 +2,5 @@
 
 library "github.com/melt-umn/jenkins-lib"
 
-ablec.buildNormalExtension('ableC-vector', ['ableC-templating', 'ableC-string'])
+ablec.buildSilverAbleCExtension('ableC-vector', ['ableC-templating', 'ableC-string'])
 
