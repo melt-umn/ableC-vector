@@ -14,5 +14,5 @@ marking terminal Vector_t /vector[\ ]*</ lexer classes {Ckeyword};
 
 concrete productions top::TypeSpecifier_c
 | Vector_t sub::TypeName_c '>'
-    { top.realTypeSpecifiers = [vectorTypeExpr(top.givenQualifiers, sub.ast)];
+    { top.realTypeSpecifiers = [vectorTypeExpr(top.givenQualifiers, sub.ast, top.location)];
       top.preTypeSpecifiers = []; }
