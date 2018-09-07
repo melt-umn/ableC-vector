@@ -34,9 +34,9 @@ top::ExtType ::= sub::Type
   top.host =
     pointerType(
       top.givenQualifiers,
-      tagType(
+      extType(
         nilQualifier(),
-        refIdTagType(
+        refIdExtType(
           structSEU(),
           templateMangledName("_vector_s", [sub]),
           templateMangledRefId("_vector_s", [sub]))));
