@@ -8,7 +8,7 @@ imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
 imports edu:umn:cs:melt:ableC:abstractsyntax:env;
 --imports edu:umn:cs:melt:ableC:abstractsyntax:debug;
 
-imports edu:umn:cs:melt:exts:ableC:vector;
+imports edu:umn:cs:melt:exts:ableC:vector:abstractsyntax;
 
 marking terminal Vector_t /vector[\ ]*</ lexer classes {Ckeyword};
 

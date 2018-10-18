@@ -12,14 +12,14 @@ inherited attribute subTypeIn::TypeName;
 nonterminal VectorInitializer_c with location, ast<Expr>, subTypeIn;
 
 concrete productions top::VectorInitializer_c
-|'[' elems::VectorConstructorExprList_c ']'
+| '[' elems::VectorConstructorExprList_c ']'
   { top.ast = constructVector(top.subTypeIn, foldExpr(elems.ast), location=top.location); }
-|'[' ']'
+| '[' ']'
   { top.ast = constructVector(top.subTypeIn, nilExpr(), location=top.location); }
-|'(' size::AssignExpr_c ')'
+| '(' size::AssignExpr_c ')'
   { top.ast = newVector(top.subTypeIn, size.ast, location=top.location); }
-  
--- Can't use ArgumentExprList due to failing mda
+
+-- Can't use ArgumentExprList due to mda restrictions
 closed nonterminal VectorConstructorExprList_c with location, ast<[Expr]>;
 
 concrete productions top::VectorConstructorExprList_c
