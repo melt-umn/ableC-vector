@@ -1,7 +1,9 @@
 #include <vector.xh>
+#include <string.xh>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gc.h>
 
 struct foo { int i; float f; };
 

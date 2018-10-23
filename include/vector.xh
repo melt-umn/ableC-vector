@@ -1,17 +1,13 @@
-#include <string.xh>
-#include <gc.h>
-
-#include <string.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <limits.h>
 
 #ifndef _VECTOR_XH
 #define _VECTOR_XH
 
 template<a>
 struct _vector_s {
+  void *(*alloc)(size_t size);
+  void *(*realloc)(void *ptr, size_t size);
   size_t length;
   size_t capacity;
   a *contents;
@@ -37,25 +33,31 @@ static void resize_vector(vector<a> v, size_t new_length) {
   if (new_length > v.capacity) {
     ((inst _vector_s<a> *)v)->capacity = new_length * 2;
     ((inst _vector_s<a> *)v)->contents =
-      GC_realloc(((inst _vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
+      ((inst _vector_s<a> *)v)->realloc(((inst _vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
   }
 }
 
 // Create a new vector with the given length
 template<a>
-static vector<a> new_vector(size_t length) {
+static vector<a> new_vector(size_t length, void *(*alloc)(size_t size), void *(*realloc)(void *ptr, size_t size)) {
   size_t capacity = length * 2;
-  inst _vector_s<a> *result = GC_malloc(sizeof(inst _vector_s<a>));
-  result->length = length;
-  result->capacity = capacity;
-  result->contents = GC_malloc(sizeof(a) * capacity);
+  inst _vector_s<a> *result = alloc(sizeof(inst _vector_s<a>));
+  *result = (inst _vector_s<a>){alloc, realloc, length, capacity, alloc(sizeof(a) * capacity)};
   return (vector<a>)result;
+}
+
+// Free the memory representing a vector
+template<a>
+static void free_vector(vector<a> v, void (*free)(void *ptr)) {
+  free(((inst _vector_s<a> *)v)->contents);
+  free((inst _vector_s<a> *)v);
 }
 
 // Make a shallow copy of a vector
 template<a>
 static vector<a> copy_vector(vector<a> v) {
-  vector<a> result = vec<a>(v.length);
+  vector<a> result =
+    vec<a> allocate(((inst _vector_s<a> *)v)->alloc, ((inst _vector_s<a> *)v)->realloc)(v.length);
   for (size_t i = 0; i < v.length; i++) {
     // Note that this uses overloaded =
     result[i] = v[i];
@@ -95,17 +97,17 @@ static void extend_vector(vector<a> v1, vector<a> v2) {
 
 // Check if two vectors are equal
 template<a>
-static bool equals_vector(vector<a> v1, vector<a> v2) {
+static _Bool equals_vector(vector<a> v1, vector<a> v2) {
   if (v1.length != v2.length)
-    return false;
+    return 0;
 
   for (size_t i = 0; i < v1.length; i++) {
     // Note that this uses overloaded !=
     if (v1[i] != v2[i])
-      return false;
+      return 0;
   }
   
-  return true;
+  return 1;
 }
 
 // Convert a vector to a string representation
