@@ -6,7 +6,7 @@
 #include <gc.h>
 
 vector<int> sieve(int n) {
-  vector<int> ints = vec<int>(n);
+  vector<int> ints = new vector<int>(n);
   for (int i = 0; i < n; i++)
     ints[i] = i;
 

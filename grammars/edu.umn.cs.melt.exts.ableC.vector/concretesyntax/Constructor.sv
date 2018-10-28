@@ -13,20 +13,14 @@ inherited attribute subTypeIn::TypeName;
 nonterminal VectorInitializer_c with location, ast<Expr>, subTypeIn;
 
 concrete productions top::VectorInitializer_c
-| allocator::MaybeAllocator_c '[' elems::VectorConstructorExprList_c ']'
-  { top.ast = constructVector(top.subTypeIn, allocator.ast.fst, allocator.ast.snd, foldExpr(elems.ast), location=top.location); }
-| allocator::MaybeAllocator_c '[' ']'
-  { top.ast = constructVector(top.subTypeIn, allocator.ast.fst, allocator.ast.snd, nilExpr(), location=top.location); }
-| allocator::MaybeAllocator_c '(' size::AssignExpr_c ')'
-  { top.ast = newVector(top.subTypeIn, allocator.ast.fst, allocator.ast.snd, size.ast, location=top.location); }
-
-nonterminal MaybeAllocator_c with ast<Pair<MaybeExpr MaybeExpr>>, location;
-
-concrete productions top::MaybeAllocator_c
-| 'allocate' '(' e1::AssignExpr_c ',' e2::AssignExpr_c ')'
-    { top.ast = pair(justExpr(e1.ast), justExpr(e2.ast)); }
-| 
-    { top.ast = pair(nothingExpr(), nothingExpr()); }
+| '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
+  { top.ast = constructVector(top.subTypeIn, foldExpr(args.ast), foldExpr(elems.ast), location=top.location); }
+| '(' args::ArgumentExprList_c ')' '[' ']'
+  { top.ast = constructVector(top.subTypeIn, foldExpr(args.ast), nilExpr(), location=top.location); }
+| '[' elems::VectorConstructorExprList_c ']'
+  { top.ast = constructVector(top.subTypeIn, nilExpr(), foldExpr(elems.ast), location=top.location); }
+| '[' ']'
+  { top.ast = constructVector(top.subTypeIn, nilExpr(), nilExpr(), location=top.location); }
 
 -- Can't use ArgumentExprList due to mda restrictions
 closed nonterminal VectorConstructorExprList_c with location, ast<[Expr]>;

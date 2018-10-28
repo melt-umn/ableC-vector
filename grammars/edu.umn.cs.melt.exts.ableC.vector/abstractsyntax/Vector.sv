@@ -12,106 +12,17 @@ imports edu:umn:cs:melt:ableC:abstractsyntax:overloadable as ovrld;
 
 imports edu:umn:cs:melt:exts:ableC:templating;
 imports edu:umn:cs:melt:exts:ableC:string;
+imports edu:umn:cs:melt:exts:ableC:constructor;
 
 -- Vector initialization
 abstract production newVector
-top::Expr ::= sub::TypeName allocator::MaybeExpr reallocator::MaybeExpr size::Expr
+top::Expr ::= sub::Type args::Exprs
 {
   propagate substituted;
-  local allocPP::Document =
-    case allocator, reallocator of
-    | justExpr(e1), justExpr(e2) -> pp" allocate(${e1.pp}, ${e2.pp}) "
-    | justExpr(e), nothingExpr() -> pp" allocate(${e.pp}) "
-    | nothingExpr(), justExpr(e) -> pp" allocate(${e.pp}) "
-    | nothingExpr(), nothingExpr() -> pp""
-    end;
-  top.pp = pp"vec<${sub.pp}>${allocPP}(${size.pp})";
+  top.pp = pp"new vector<${sub.lpp}${sub.rpp}>(${ppImplode(pp", ", args.pps)})";
   
-  local localErrors::[Message] =
-    sub.errors ++ allocator.errors ++ size.errors ++
-    checkVectorHeaderDef("new_vector", top.location, top.env) ++
-    checkAllocatorErrors(allocator, top.location) ++
-    checkReallocatorErrors(reallocator, top.location);
-  
-  sub.env = globalEnv(top.env);
-  
-  local alloc::Expr = fromMaybe(ableC_Expr {GC_malloc}, allocator.justTheExpr);
-  local realloc::Expr = fromMaybe(ableC_Expr {GC_realloc}, reallocator.justTheExpr);
-  local fwrd::Expr =
-    ableC_Expr { inst new_vector<$TypeName{sub}>($Expr{size}, $Expr{alloc}, $Expr{realloc}) };
-  
-  forwards to mkErrorCheck(localErrors, fwrd);
-}
-
-abstract production constructVector
-top::Expr ::= sub::TypeName allocator::MaybeExpr reallocator::MaybeExpr e::Exprs
-{
-  propagate substituted;
-  local allocPP::Document =
-    case allocator, reallocator of
-    | justExpr(e1), justExpr(e2) -> pp"allocate(${e1.pp}, ${e2.pp}) "
-    | justExpr(e), nothingExpr() -> pp"allocate(${e.pp}) "
-    | nothingExpr(), justExpr(e) -> pp"allocate(${e.pp}) "
-    | nothingExpr(), nothingExpr() -> pp""
-    end;
-  top.pp = pp"vec<${sub.pp}> ${allocPP}[${ppImplode(pp", ", e.pps)}]";
-  
-  local localErrors::[Message] =
-    sub.errors ++ allocator.errors ++ e.errors ++
-    e.vectorInitErrors ++
-    checkVectorHeaderDef("new_vector", top.location, top.env) ++
-    checkAllocatorErrors(allocator, top.location) ++
-    checkReallocatorErrors(reallocator, top.location);
-  
-  sub.env = globalEnv(top.env);
-  
-  e.argumentPosition = 0;
-  e.vectorInitType = sub.typerep;
-  
-  local fwrd::Expr =
-    ableC_Expr {
-      ({$BaseTypeExpr{vectorTypeExpr(nilQualifier(), sub, builtin)} _vec =
-          $Expr{
-            newVector(
-              typeName(directTypeExpr(sub.typerep), baseTypeExpr()),
-              allocator, reallocator,
-              mkIntConst(e.count, builtin),
-              location=builtin)};
-        $Stmt{e.vectorInitTrans}
-        _vec;})
-    };
-  
-  forwards to mkErrorCheck(localErrors, fwrd);
-}
-
-abstract production freeVector
-top::Expr ::= e::Expr deallocator::Expr
-{
-  propagate substituted;
-  top.pp = pp"${e.pp}.free(${deallocator.pp})";
-  
-  local expectedDeallocatorType::Type =
-    functionType(
-      builtinType(nilQualifier(), voidType()),
-      protoFunctionType(
-        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
-        false),
-      nilQualifier());
-  local localErrors :: [Message] =
-    if compatibleTypes(expectedDeallocatorType, deallocator.typerep, true, false) then []
-    else [err(deallocator.location, s"Deallocator must have type void(void*) (got ${showType(deallocator.typerep)})")] ++
-    e.errors ++ deallocator.errors;
-  
-  local subType::Type = vectorSubType(e.typerep);
-  local fwrd::Expr =
-    ableC_Expr { inst free_vector<$directTypeExpr{subType}>($Expr{e}, $Expr{deallocator}) };
-  
-  forwards to mkErrorCheck(localErrors, fwrd);
-}
-
-function checkAllocatorErrors
-[Message] ::= allocator::Decorated MaybeExpr loc::Location
-{
+  local expectedSizeType::Type =
+    builtinType(nilQualifier(), unsignedType(longType()));
   local expectedAllocatorType::Type =
     functionType(
       pointerType(
@@ -119,24 +30,6 @@ function checkAllocatorErrors
         builtinType(nilQualifier(), voidType())),
       protoFunctionType([builtinType(nilQualifier(), unsignedType(longType()))], false),
       nilQualifier());
-  
-  return
-    case allocator of
-      justExpr(e) ->
-        if compatibleTypes(expectedAllocatorType, e.typerep, true, false) ||
-           compatibleTypes(pointerType(nilQualifier(), expectedAllocatorType), e.typerep, true, false)
-        then []
-        else [err(e.location, s"Allocator must have type void *(unsigned long) (got ${showType(e.typerep)})")]
-    | nothingExpr() ->
-        if !null(lookupValue("GC_malloc", allocator.env))
-        then []
-        else [err(loc, "Vector expression lacking an explicit allocator requires <gc.h> to be included.")]
-    end;
-}
-
-function checkReallocatorErrors
-[Message] ::= reallocator::Decorated MaybeExpr loc::Location
-{
   local expectedReallocatorType::Type =
     functionType(
       pointerType(
@@ -147,19 +40,137 @@ function checkReallocatorErrors
          builtinType(nilQualifier(), unsignedType(longType()))],
         false),
       nilQualifier());
-  
-  return
-    case reallocator of
-      justExpr(e) ->
-        if compatibleTypes(expectedReallocatorType, e.typerep, true, false) ||
-           compatibleTypes(pointerType(nilQualifier(), expectedReallocatorType), e.typerep, true, false)
-        then []
-        else [err(e.location, s"Reallocator must have type void *(void *, unsigned long) (got ${showType(e.typerep)})")]
-    | nothingExpr() ->
-        if !null(lookupValue("GC_realloc", reallocator.env))
-        then []
-        else [err(loc, "Vector expression lacking an explicit reallocator requires <gc.h> to be included.")]
+  local expectedDeallocatorType::Type =
+    functionType(
+      builtinType(nilQualifier(), voidType()),
+      protoFunctionType(
+        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
+        false),
+      nilQualifier());
+  local localErrors::[Message] =
+    args.errors ++
+    checkVectorHeaderDef("new_vector", top.location, top.env) ++
+    case args of
+    | consExpr(size, _) ->
+      if typeAssignableTo(expectedSizeType, size.typerep) then []
+      else [err(size.location, s"Size must have type unsigned long (got ${showType(size.typerep)})")]
+    | _ -> []
+    end ++
+    case args of
+    | consExpr(_, consExpr(init, _)) ->
+      if typeAssignableTo(sub, init.typerep) then []
+      else [err(init.location, s"Initial value must have type ${showType(sub)} (got ${showType(init.typerep)})")]
+    | _ -> []
+    end ++
+    case args of
+    | consExpr(_, consExpr(_, consExpr(allocator, _))) ->
+      if typeAssignableTo(expectedAllocatorType, allocator.typerep) then []
+      else [err(allocator.location, s"Allocator must have type void *(unsigned long) (got ${showType(allocator.typerep)})")]
+    | _ ->
+      if !null(lookupValue("GC_malloc", top.env))
+      then []
+      else [err(top.location, "Vector expression lacking an explicit allocator requires <gc.h> to be included.")]
+    end ++
+    case args of
+    | consExpr(_, consExpr(_, consExpr(_, consExpr(reallocator, _)))) ->
+      if typeAssignableTo(expectedReallocatorType, reallocator.typerep) then []
+      else [err(reallocator.location, s"Reallocator must have type void *(void *, unsigned long) (got ${showType(reallocator.typerep)})")]
+    | _ -> []
+    end ++
+    case args of
+    | consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(deallocator, _))))) ->
+      if typeAssignableTo(expectedDeallocatorType, deallocator.typerep) then []
+      else [err(deallocator.location, s"Deallocator must have type void(void *) (got ${showType(deallocator.typerep)})")]
+    | _ -> []
+    end ++
+    case args of
+    | consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(_, _)))))) ->
+      [err(top.location, s"Too many arguments in vector expression")]
+    | _ -> []
     end;
+  
+  local size::Expr =
+    case args of
+    | consExpr(size, _) -> size
+    | _ -> ableC_Expr {0}
+    end;
+  local init::Expr =
+    case args of
+    | consExpr(_, consExpr(init, _)) -> init
+    | _ -> ableC_Expr { ($directTypeExpr{sub}){0} }
+    end;
+  local allocator::Expr =
+    case args of
+    | consExpr(_, consExpr(_, consExpr(allocator, _))) -> allocator
+    | _ -> ableC_Expr {GC_malloc}
+    end;
+  local reallocator::Expr =
+    case args of
+    | consExpr(_, consExpr(_, consExpr(_, consExpr(reallocator, _)))) -> reallocator
+    | _ -> ableC_Expr {GC_realloc}
+    end;
+  local deallocator::Expr =
+    case args of
+    | consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(deallocator, _))))) -> deallocator
+    | _ -> ableC_Expr {(void (*)(void*))0}
+    end;
+  local fwrd::Expr =
+    ableC_Expr { inst new_vector<$directTypeExpr{sub}>($Expr{size}, $Expr{init}, $Expr{allocator}, $Expr{reallocator}, $Expr{deallocator}) };
+  
+  forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production constructVector
+top::Expr ::= sub::TypeName args::Exprs e::Exprs
+{
+  propagate substituted;
+  top.pp = pp"vec<${sub.pp}>(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
+  
+  local localErrors::[Message] =
+    sub.errors ++ args.errors ++ e.errors ++
+    e.vectorInitErrors ++
+    checkVectorHeaderDef("new_vector", top.location, top.env);
+  
+  sub.env = globalEnv(top.env);
+  e.argumentPosition = 0;
+  e.vectorInitType = sub.typerep;
+  
+  local fwrd::Expr =
+    ableC_Expr {
+      ({$Decl{decls(foldDecl(sub.decls))}
+        $BaseTypeExpr{vectorTypeExpr(nilQualifier(), sub, builtin)} _vec =
+          $Expr{
+            newVector(
+              sub.typerep,
+              consExpr(
+                mkIntConst(e.count, builtin),
+                consExpr(
+                  ableC_Expr { ($directTypeExpr{sub.typerep}){0} },
+                  args)),
+              location=top.location)};
+        $Stmt{e.vectorInitTrans}
+        _vec;})
+    };
+  
+  forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production deleteVector
+top::Stmt ::= e::Expr
+{
+  propagate substituted;
+  top.pp = pp"delete ${e.pp};";
+  top.functionDefs := [];
+  
+  local localErrors :: [Message] =
+    e.errors ++
+    checkVectorHeaderDef("delete_vector", e.location, top.env);
+  
+  local subType::Type = vectorSubType(e.typerep);
+  local fwrd::Stmt =
+    ableC_Stmt { inst delete_vector<$directTypeExpr{subType}>($Expr{e}); };
+  
+  forwards to if !null(localErrors) then warnStmt(localErrors) else fwrd;
 }
 
 autocopy attribute vectorInitType::Type occurs on Exprs;
@@ -273,7 +284,6 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
     | "insert", consExpr(e1, consExpr(e2, nilExpr())) -> insertVector(lhs, e1, e2, location=top.location)
     | "extend", consExpr(e, nilExpr()) -> extendVector(lhs, e, location=top.location)
     | "copy", nilExpr() -> copyVector(lhs, location=top.location)
-    | "free", consExpr(e, nilExpr()) -> freeVector(lhs, e, location=top.location)
     | n, _ -> errorExpr([err(rhs.location, s"Vector does not have field ${n} with ${toString(a.count)} parameters")], location=top.location)
     end;
 }
@@ -363,25 +373,25 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name
   
   forwards to
     case rhs.name of
-      "length"    -> lengthVector(lhs, location=top.location)
-    | "size"      -> lengthVector(lhs, location=top.location)
+    | "size"      -> sizeVector(lhs, location=top.location)
+    | "length"    -> sizeVector(lhs, location=top.location)
     | "capacity"  -> capacityVector(lhs, location=top.location)
     | n -> errorExpr([err(rhs.location, s"Vector does not have field ${n}")], location=top.location)
     end;
 }
 
-abstract production lengthVector
+abstract production sizeVector
 top::Expr ::= e::Expr
 {
   propagate substituted;
-  top.pp = pp"${e.pp}.length";
+  top.pp = pp"${e.pp}.size";
   
   local subType::Type = vectorSubType(e.typerep);
-  local fwrd::Expr = ableC_Expr { ((const $directTypeExpr{e.typerep.host})$Expr{e})->length };
+  local fwrd::Expr = ableC_Expr { ((const $directTypeExpr{e.typerep.host})$Expr{e})->size };
   local localErrors::[Message] =
     e.errors ++
     checkVectorHeaderDef("_vector_s", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "length", top.location);
+    checkVectorType(subType, e.typerep, "size", top.location);
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
