@@ -8,11 +8,11 @@ imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
 imports edu:umn:cs:melt:ableC:abstractsyntax:env;
 --imports edu:umn:cs:melt:ableC:abstractsyntax:debug;
 
-imports edu:umn:cs:melt:exts:ableC:vector;
+imports edu:umn:cs:melt:exts:ableC:vector:abstractsyntax;
 
 marking terminal Vector_t /vector[\ ]*</ lexer classes {Ckeyword};
 
 concrete productions top::TypeSpecifier_c
 | Vector_t sub::TypeName_c '>'
-    { top.realTypeSpecifiers = [vectorTypeExpr(top.givenQualifiers, sub.ast)];
+    { top.realTypeSpecifiers = [vectorTypeExpr(top.givenQualifiers, sub.ast, top.location)];
       top.preTypeSpecifiers = []; }

@@ -1,8 +1,9 @@
-
 #include <vector.xh>
+#include <string.xh>
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <gc.h>
 
 vector<int> sieve(int n) {
   vector<int> ints = vec<int>(n);

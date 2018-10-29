@@ -1,4 +1,4 @@
-// Missing include of <vector.xh>
+// Missing include of vector.xh, string.xh and gc.h
 #include <stdio.h>
 #include <stdlib.h>
 
