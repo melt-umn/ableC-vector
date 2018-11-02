@@ -48,6 +48,8 @@ top::ExtType ::= sub::Type
       | _ -> false
       end;
   
+  top.newProd = just(newVector(sub, _, location=_));
+  top.deleteProd = just(deleteVector(_));
   top.lAddProd = just(concatVector(_, _, location=_));
   top.rAddProd = just(concatVector(_, _, location=_));
   -- Overload for += automatically inferred from above
