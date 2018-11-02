@@ -264,10 +264,11 @@ top::Expr ::= e1::Expr e2::Expr
   local indexTempName::String = "_index_" ++ toString(genInt());
   local fwrd::Expr =
     ableC_Expr {
+      proto_typedef _vector_s;
       ({$directTypeExpr{e1.typerep} $name{vecTempName} = $Expr{e1};
         $directTypeExpr{e2.typerep} $name{indexTempName} = $Expr{e2};
         inst _check_index_vector<$directTypeExpr{subType}>($name{vecTempName}, $name{indexTempName});
-        (($directTypeExpr{e1.typerep.host})$name{vecTempName})->contents + $name{indexTempName};})
+        ((inst _vector_s<$directTypeExpr{subType}> *)$name{vecTempName})->contents + $name{indexTempName};})
     };
   
   forwards to mkErrorCheck(localErrors, fwrd);
@@ -387,7 +388,11 @@ top::Expr ::= e::Expr
   top.pp = pp"${e.pp}.size";
   
   local subType::Type = vectorSubType(e.typerep);
-  local fwrd::Expr = ableC_Expr { ((const $directTypeExpr{e.typerep.host})$Expr{e})->size };
+  local fwrd::Expr =
+    ableC_Expr {
+      proto_typedef _vector_s;
+      ((inst _vector_s<$directTypeExpr{subType}> *const)$Expr{e})->size
+    };
   local localErrors::[Message] =
     e.errors ++
     checkVectorHeaderDef("_vector_s", top.location, top.env) ++
@@ -403,7 +408,11 @@ top::Expr ::= e::Expr
   top.pp = pp"${e.pp}.capacity";
   
   local subType::Type = vectorSubType(e.typerep);
-  local fwrd::Expr = ableC_Expr { ((const $directTypeExpr{e.typerep.host})$Expr{e})->capacity };
+  local fwrd::Expr =
+    ableC_Expr {
+      proto_typedef _vector_s;
+      ((inst _vector_s<$directTypeExpr{subType}> *const)$Expr{e})->capacity
+    };
   local localErrors::[Message] =
     e.errors ++
     checkVectorHeaderDef("_vector_s", top.location, top.env) ++
@@ -434,7 +443,7 @@ top::Expr ::= e::Expr
   forwards to mkErrorCheck(localErrors, fwrd);
 }
 
--- Check the given env for the given function name
+-- Check the given env for the given template name
 function checkVectorHeaderDef
 [Message] ::= n::String loc::Location env::Decorated Env
 {
