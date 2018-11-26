@@ -1,7 +1,6 @@
 grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 
 marking terminal Vec_t /vec[\ ]*</ lexer classes {Ckeyword};
-terminal Allocate_t 'allocate';
 
 concrete productions top::PrimaryExpr_c
 | Vec_t sub::TypeName_c '>' init::VectorInitializer_c

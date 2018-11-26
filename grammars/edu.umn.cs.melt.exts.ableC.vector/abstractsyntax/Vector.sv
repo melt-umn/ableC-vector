@@ -207,7 +207,7 @@ top::Expr ::= e1::Expr e2::Expr
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
-    e1.errors ++ e1.errors ++
+    e1.errors ++ e2.errors ++
     checkVectorHeaderDef("copy_vector", top.location, top.env) ++
     checkVectorType(subType, e1.typerep, "concat", top.location) ++
     checkVectorType(subType, e2.typerep, "concat", top.location);
@@ -235,7 +235,7 @@ top::Expr ::= e1::Expr e2::Expr
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
-    e1.errors ++ e1.errors ++
+    e1.errors ++ e2.errors ++
     checkVectorHeaderDef("equals_vector", top.location, top.env) ++
     checkVectorType(subType, e1.typerep, "==", top.location) ++
     checkVectorType(subType, e2.typerep, "==", top.location);
@@ -253,7 +253,7 @@ top::Expr ::= e1::Expr e2::Expr
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
-    e1.errors ++ e1.errors ++
+    e1.errors ++ e2.errors ++
     checkVectorHeaderDef("_check_index_vector", top.location, top.env) ++
     checkVectorType(subType, e1.typerep, "[]", top.location) ++
     if e2.typerep.isIntegerType
@@ -357,7 +357,7 @@ top::Expr ::= e1::Expr e2::Expr
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
-    e1.errors ++ e1.errors ++
+    e1.errors ++ e2.errors ++
     checkVectorHeaderDef("extend_vector", top.location, top.env) ++
     checkVectorType(subType, e1.typerep, "extend", top.location) ++
     checkVectorType(subType, e2.typerep, "extend", top.location);
