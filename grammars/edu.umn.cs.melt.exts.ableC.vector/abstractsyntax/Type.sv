@@ -29,7 +29,7 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
 abstract production vectorType
 top::ExtType ::= sub::Type
 {
-  propagate substituted;
+  propagate substituted, canonicalType;
   top.pp = pp"vector<${sub.lpp}${sub.rpp}>";
   top.host =
     pointerType(
