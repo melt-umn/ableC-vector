@@ -17,7 +17,7 @@ struct _vector_s {
 // Check whether an index is valid for a given vector
 template<a>
 static void _check_index_vector(vector<a> v, size_t idx) {
-  if ((inst _vector_s<a> *)v == NULL || ((inst _vector_s<a> *)v)->contents == NULL) {
+  if ((_vector_s<a> *)v == NULL || ((_vector_s<a> *)v)->contents == NULL) {
     fprintf(stderr, "Cannot access uninitialized vector\n");
     exit(1);
   }
@@ -30,11 +30,11 @@ static void _check_index_vector(vector<a> v, size_t idx) {
 // Modify the size of a vector to new_size
 template<a>
 static void resize_vector(vector<a> v, size_t new_size) {
-  ((inst _vector_s<a> *)v)->size = new_size;
+  ((_vector_s<a> *)v)->size = new_size;
   if (new_size > v.capacity) {
-    ((inst _vector_s<a> *)v)->capacity = new_size * 2;
-    ((inst _vector_s<a> *)v)->contents =
-      ((inst _vector_s<a> *)v)->realloc(((inst _vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
+    ((_vector_s<a> *)v)->capacity = new_size * 2;
+    ((_vector_s<a> *)v)->contents =
+      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
   }
 }
 
@@ -45,8 +45,8 @@ static vector<a> new_vector(size_t size, a init,
                             void *(*realloc)(void *ptr, size_t size),
                             void (*dealloc)(void *ptr)) {
   size_t capacity = size * 2;
-  vector<a> result = (vector<a>)alloc(sizeof(inst _vector_s<a>));
-  *(inst _vector_s<a> *)result = (inst _vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity)};
+  vector<a> result = (vector<a>)alloc(sizeof(_vector_s<a>));
+  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity)};
   for (size_t i = 0; i < size; i++) {
     result[i] = init;
   }
@@ -56,10 +56,10 @@ static vector<a> new_vector(size_t size, a init,
 // Free the memory representing a vector
 template<a>
 static void delete_vector(vector<a> v) {
-  void (*dealloc)(void *ptr) = ((inst _vector_s<a> *)v)->dealloc;
+  void (*dealloc)(void *ptr) = ((_vector_s<a> *)v)->dealloc;
   if (dealloc) {
-    dealloc(((inst _vector_s<a> *)v)->contents);
-    dealloc((inst _vector_s<a> *)v);
+    dealloc(((_vector_s<a> *)v)->contents);
+    dealloc((_vector_s<a> *)v);
   }
 }
 
@@ -68,9 +68,9 @@ template<a>
 static vector<a> copy_vector(vector<a> v) {
   vector<a> result =
     new vector<a>(v.size, (a){0},
-                  ((inst _vector_s<a> *)v)->alloc,
-                  ((inst _vector_s<a> *)v)->realloc,
-                  ((inst _vector_s<a> *)v)->dealloc);
+                  ((_vector_s<a> *)v)->alloc,
+                  ((_vector_s<a> *)v)->realloc,
+                  ((_vector_s<a> *)v)->dealloc);
   for (size_t i = 0; i < v.size; i++) {
     // Note that this uses overloaded =
     result[i] = v[i];
@@ -81,14 +81,14 @@ static vector<a> copy_vector(vector<a> v) {
 // Append an element to the end of a vector
 template<a>
 static void append_vector(vector<a> v, a elem) {
-  inst resize_vector<a>(v, v.size + 1);
+  resize_vector<a>(v, v.size + 1);
   v[v.size - 1] = elem;
 }
 
 // Insert an element at an index into a vector
 template<a>
 static void insert_vector(vector<a> v, size_t idx, a elem) {
-  inst resize_vector<a>(v, v.size + 1);
+  resize_vector<a>(v, v.size + 1);
   for (size_t i = v.size - 1; i > idx; i--) {
     // Note that this uses overloaded =
     v[i] = v[i - 1];
@@ -101,7 +101,7 @@ template<a>
 static void extend_vector(vector<a> v1, vector<a> v2) {
   size_t v1_size = v1.size;
   size_t v2_size = v2.size;
-  inst resize_vector<a>(v1, v1_size + v2_size);
+  resize_vector<a>(v1, v1_size + v2_size);
   for (size_t i = 0; i < v2_size; i++) {
     // Note that this uses overloaded =
     v1[i + v1_size] = v2[i];
