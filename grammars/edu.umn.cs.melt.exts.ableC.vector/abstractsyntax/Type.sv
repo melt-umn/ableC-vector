@@ -18,11 +18,10 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
     then errorTypeExpr(localErrors)
     else
       injectGlobalDeclsTypeExpr(
-        foldDecl([
-          templateTypeExprInstDecl(
-            q,
-            name("_vector_s", location=builtin),
-            consTypeName(sub, nilTypeName()))]),
+        foldDecl(
+          sub.decls ++
+          [templateTypeExprInstDecl(
+            q, name("_vector_s", location=builtin), [sub.typerep])]),
         extTypeExpr(q, vectorType(sub.typerep)));
 }
 
