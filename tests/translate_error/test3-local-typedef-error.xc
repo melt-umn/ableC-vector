@@ -8,7 +8,7 @@
 int main(int argc, char **argv) {
   typedef int foo;
   // Can't parameterize a vector with a non-global type
-  vector<foo> v = vec<foo> [1, 2, 3];
+  vector<foo> v = vec[1, 2, 3];
 
   printf("%s\n", show(v));
 

@@ -81,14 +81,14 @@ static vector<a> copy_vector(vector<a> v) {
 // Append an element to the end of a vector
 template<a>
 static void append_vector(vector<a> v, a elem) {
-  resize_vector<a>(v, v.size + 1);
+  resize_vector(v, v.size + 1);
   v[v.size - 1] = elem;
 }
 
 // Insert an element at an index into a vector
 template<a>
 static void insert_vector(vector<a> v, size_t idx, a elem) {
-  resize_vector<a>(v, v.size + 1);
+  resize_vector(v, v.size + 1);
   for (size_t i = v.size - 1; i > idx; i--) {
     // Note that this uses overloaded =
     v[i] = v[i - 1];
@@ -101,7 +101,7 @@ template<a>
 static void extend_vector(vector<a> v1, vector<a> v2) {
   size_t v1_size = v1.size;
   size_t v2_size = v2.size;
-  resize_vector<a>(v1, v1_size + v2_size);
+  resize_vector(v1, v1_size + v2_size);
   for (size_t i = 0; i < v2_size; i++) {
     // Note that this uses overloaded =
     v1[i + v1_size] = v2[i];

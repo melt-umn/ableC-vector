@@ -8,6 +8,13 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
   propagate substituted;
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
   
+  top.inferredTypes = sub.inferredTypes;
+  sub.argumentType =
+    case top.argumentType of
+    | extType(_, vectorType(t)) -> t
+    | _ -> errorType()
+    end;
+  
   sub.env = globalEnv(top.env);
   
   local localErrors::[Message] =

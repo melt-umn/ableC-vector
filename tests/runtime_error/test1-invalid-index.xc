@@ -5,7 +5,7 @@
 #include <gc.h>
 
 int main() {
-  vector<int> a = vec<int>[1, 2, 3];
+  vector<int> a = vec[1, 2, 3];
   int i = a[100];
   return 0;
 }
