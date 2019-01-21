@@ -132,6 +132,8 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
     checkVectorHeaderDef("new_vector", top.location, top.env);
   
   sub.env = globalEnv(top.env);
+  args.env = addEnv(sub.defs, sub.env);
+  e.env = addEnv(args.defs, args.env);
   e.argumentPosition = 0;
   e.vectorInitType = sub.typerep;
   
@@ -146,6 +148,47 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
                 mkIntConst(e.count, builtin),
                 consExpr(
                   ableC_Expr { ($directTypeExpr{sub.typerep}){0} },
+                  args)),
+              location=top.location)};
+        $Stmt{e.vectorInitTrans}
+        _vec;})
+    };
+  
+  forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production inferredConstructVector
+top::Expr ::= args::Exprs e::Exprs
+{
+  propagate substituted;
+  top.pp = pp"vec(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
+  
+  local subType::Type = head(e.typereps);
+  
+  local localErrors::[Message] =
+    args.errors ++ e.errors ++
+    (if e.count == 0
+     then [err(top.location, "Can't infer type argument for empty vector")]
+     else e.vectorInitErrors) ++
+    checkVectorHeaderDef("new_vector", top.location, top.env);
+  
+  e.argumentPosition = 0;
+  e.vectorInitType = subType;
+  
+  local fwrd::Expr =
+    ableC_Expr {
+      ({$BaseTypeExpr{
+        vectorTypeExpr(
+          nilQualifier(),
+          typeName(directTypeExpr(subType), baseTypeExpr()),
+          builtin)} _vec =
+          $Expr{
+            newVector(
+              subType,
+              consExpr(
+                mkIntConst(e.count, builtin),
+                consExpr(
+                  ableC_Expr { ($directTypeExpr{subType}){0} },
                   args)),
               location=top.location)};
         $Stmt{e.vectorInitTrans}

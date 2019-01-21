@@ -5,9 +5,9 @@
 #include <stdlib.h>
 
 int main(int argc, char **argv) {
-  vector<int> a = vec<int>(malloc, realloc, free) [1, 2, 3];
+  vector<int> a = vec(malloc, realloc, free) [1, 2, 3];
   printf("a: %s\n", show(a).text);
-  vector<int> b = vec<int>(malloc, realloc, free) [4, 5, 6];
+  vector<int> b = vec(malloc, realloc, free) [4, 5, 6];
   printf("b: %s\n", show(b).text);
   vector<int> c = a + b;
   printf("c: %s\n", show(c).text);
