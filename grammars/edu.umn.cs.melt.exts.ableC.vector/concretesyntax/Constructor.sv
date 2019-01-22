@@ -1,16 +1,20 @@
 grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 
-marking terminal VecLT_t /vec[\ ]*</ lexer classes {Ckeyword};
-marking terminal Vec_t   'vec'       lexer classes {Ckeyword};
+marking terminal Vec_t 'vec' lexer classes {Cidentifier}, font=font_all;
+
+aspect parser attribute context
+  action {
+    context = addIdentsToScope([name("vec", location=builtin)], Vec_t, context);
+  };
 
 concrete productions top::PrimaryExpr_c
-| VecLT_t sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
+| 'vec' '<' sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
   { top.ast = constructVector(sub.ast, foldExpr(args.ast), foldExpr(elems.ast), location=top.location); }
-| VecLT_t sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' ']'
+| 'vec' '<' sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' ']'
   { top.ast = constructVector(sub.ast, foldExpr(args.ast), nilExpr(), location=top.location); }
-| VecLT_t sub::TypeName_c '>' '[' elems::VectorConstructorExprList_c ']'
+| 'vec' '<' sub::TypeName_c '>' '[' elems::VectorConstructorExprList_c ']'
   { top.ast = constructVector(sub.ast, nilExpr(), foldExpr(elems.ast), location=top.location); }
-| VecLT_t sub::TypeName_c '>' '[' ']'
+| 'vec' '<' sub::TypeName_c '>' '[' ']'
   { top.ast = constructVector(sub.ast, nilExpr(), nilExpr(), location=top.location); }
 | 'vec' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
   { top.ast = inferredConstructVector(foldExpr(args.ast), foldExpr(elems.ast), location=top.location); }
