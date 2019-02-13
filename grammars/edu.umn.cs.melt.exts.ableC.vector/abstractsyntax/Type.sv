@@ -66,7 +66,13 @@ top::ExtType ::= sub::Type
   -- Overloads for [], []= automatically inferred from above
   top.callMemberProd = just(callMemberVector(_, _, _, _, location=_));
   top.memberProd = just(memberVector(_, _, _, location=_));
-  top.showProd = just(showVector(_, location=_));
+  
+  top.showErrors =
+    \ l::Location env::Decorated Env ->
+      sub.showErrors(l, env) ++
+      checkVectorHeaderDef("show_vector", l, env);
+  top.showProd =
+    \ e::Expr -> ableC_Expr { inst show_vector<$directTypeExpr{sub}>($Expr{e}) };
 }
 
 -- Find the sub-type of a vector type

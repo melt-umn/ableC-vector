@@ -464,28 +464,6 @@ top::Expr ::= e::Expr
   forwards to mkErrorCheck(localErrors, fwrd);
 }
 
-abstract production showVector
-top::Expr ::= e::Expr
-{
-  propagate substituted;
-  top.pp = pp"show(${e.pp})";
-  
-  local subType::Type = vectorSubType(e.typerep);
-  local localErrors::[Message] =
-    e.errors ++
-    checkVectorHeaderDef("show_vector", top.location, top.env) ++
-    checkStringHeaderDef("concat_string", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "show", top.location) ++
-    case subType.showProd of
-      just(p) -> []
-    | nothing() -> [err(e.location, s"show of ${showType(e.typerep)} is not defined, because show of ${showType(subType)} is not defined")]
-    end;
-  
-  local fwrd::Expr = ableC_Expr { inst show_vector<$directTypeExpr{subType}>($Expr{e}) };
-  
-  forwards to mkErrorCheck(localErrors, fwrd);
-}
-
 -- Check the given env for the given template name
 function checkVectorHeaderDef
 [Message] ::= n::String loc::Location env::Decorated Env
