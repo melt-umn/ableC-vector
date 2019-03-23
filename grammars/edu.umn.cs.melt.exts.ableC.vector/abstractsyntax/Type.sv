@@ -8,7 +8,7 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
   propagate substituted;
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
   
-  top.inferredTypes = sub.inferredTypes;
+  top.inferredArgs = sub.inferredArgs;
   sub.argumentType =
     case top.argumentType of
     | extType(_, vectorType(t)) -> t
@@ -28,7 +28,8 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
         foldDecl(
           sub.decls ++
           [templateTypeExprInstDecl(
-            q, name("_vector_s", location=builtin), [sub.typerep])]),
+            q, name("_vector_s", location=builtin),
+            consTemplateArg(typeTemplateArg(sub.typerep), nilTemplateArg()))]),
         extTypeExpr(q, vectorType(sub.typerep)));
 }
 
@@ -44,8 +45,8 @@ top::ExtType ::= sub::Type
         nilQualifier(),
         refIdExtType(
           structSEU(),
-          templateMangledName("_vector_s", [sub]),
-          templateMangledRefId("_vector_s", [sub]))));
+          templateMangledName("_vector_s", foldTemplateArg([typeTemplateArg(sub)])),
+          templateMangledRefId("_vector_s", foldTemplateArg([typeTemplateArg(sub)])))));
   top.mangledName = s"vector_${sub.mangledName}_";
   top.isEqualTo =
     \ other::ExtType ->

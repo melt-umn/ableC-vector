@@ -4,7 +4,7 @@
 #ifndef _VECTOR_XH
 #define _VECTOR_XH
 
-template<a>
+template<typename a>
 struct _vector_s {
   void *(*alloc)(size_t size);
   void *(*realloc)(void *ptr, size_t size);
@@ -15,7 +15,7 @@ struct _vector_s {
 };
 
 // Check whether an index is valid for a given vector
-template<a>
+template<typename a>
 static void _check_index_vector(vector<a> v, size_t idx) {
   if ((_vector_s<a> *)v == NULL || ((_vector_s<a> *)v)->contents == NULL) {
     fprintf(stderr, "Cannot access uninitialized vector\n");
@@ -28,7 +28,7 @@ static void _check_index_vector(vector<a> v, size_t idx) {
 }
 
 // Modify the size of a vector to new_size
-template<a>
+template<typename a>
 static void resize_vector(vector<a> v, size_t new_size) {
   ((_vector_s<a> *)v)->size = new_size;
   if (new_size > v.capacity) {
@@ -39,7 +39,7 @@ static void resize_vector(vector<a> v, size_t new_size) {
 }
 
 // Create a new vector with the given size
-template<a>
+template<typename a>
 static vector<a> new_vector(size_t size, a init,
                             void *(*alloc)(size_t size),
                             void *(*realloc)(void *ptr, size_t size),
@@ -54,7 +54,7 @@ static vector<a> new_vector(size_t size, a init,
 }
 
 // Free the memory representing a vector
-template<a>
+template<typename a>
 static void delete_vector(vector<a> v) {
   void (*dealloc)(void *ptr) = ((_vector_s<a> *)v)->dealloc;
   if (dealloc) {
@@ -64,7 +64,7 @@ static void delete_vector(vector<a> v) {
 }
 
 // Make a shallow copy of a vector
-template<a>
+template<typename a>
 static vector<a> copy_vector(vector<a> v) {
   vector<a> result =
     new vector<a>(v.size, (a){0},
@@ -79,14 +79,14 @@ static vector<a> copy_vector(vector<a> v) {
 }
 
 // Append an element to the end of a vector
-template<a>
+template<typename a>
 static void append_vector(vector<a> v, a elem) {
   resize_vector(v, v.size + 1);
   v[v.size - 1] = elem;
 }
 
 // Insert an element at an index into a vector
-template<a>
+template<typename a>
 static void insert_vector(vector<a> v, size_t idx, a elem) {
   resize_vector(v, v.size + 1);
   for (size_t i = v.size - 1; i > idx; i--) {
@@ -97,7 +97,7 @@ static void insert_vector(vector<a> v, size_t idx, a elem) {
 }
 
 // Append all the elements of another vector to a vector
-template<a>
+template<typename a>
 static void extend_vector(vector<a> v1, vector<a> v2) {
   size_t v1_size = v1.size;
   size_t v2_size = v2.size;
@@ -109,7 +109,7 @@ static void extend_vector(vector<a> v1, vector<a> v2) {
 }
 
 // Check if two vectors are equal
-template<a>
+template<typename a>
 static _Bool equals_vector(vector<a> v1, vector<a> v2) {
   if (v1.size != v2.size)
     return 0;
@@ -124,7 +124,7 @@ static _Bool equals_vector(vector<a> v1, vector<a> v2) {
 }
 
 // Convert a vector to a string representation
-template<a>
+template<typename a>
 static string show_vector(vector<a> v) {
   if (v.size == 0)
     return str("[]");
