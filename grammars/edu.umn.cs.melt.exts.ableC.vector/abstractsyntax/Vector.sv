@@ -6,7 +6,6 @@ imports silver:langutil:pp;
 imports edu:umn:cs:melt:ableC:abstractsyntax:host hiding vectorType;
 imports edu:umn:cs:melt:ableC:abstractsyntax:construction;
 imports edu:umn:cs:melt:ableC:abstractsyntax:env;
-imports edu:umn:cs:melt:ableC:abstractsyntax:substitution;
 imports edu:umn:cs:melt:ableC:abstractsyntax:overloadable as ovrld;
 --imports edu:umn:cs:melt:ableC:abstractsyntax:debug;
 
@@ -18,7 +17,6 @@ imports edu:umn:cs:melt:exts:ableC:constructor;
 abstract production newVector
 top::Expr ::= sub::Type args::Exprs
 {
-  propagate substituted;
   top.pp = pp"new vector<${sub.lpp}${sub.rpp}>(${ppImplode(pp", ", args.pps)})";
   
   local expectedSizeType::Type =
@@ -123,7 +121,6 @@ top::Expr ::= sub::Type args::Exprs
 abstract production constructVector
 top::Expr ::= sub::TypeName args::Exprs e::Exprs
 {
-  propagate substituted;
   top.pp = pp"vec<${sub.pp}>(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
   
   local localErrors::[Message] =
@@ -160,7 +157,6 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
 abstract production inferredConstructVector
 top::Expr ::= args::Exprs e::Exprs
 {
-  propagate substituted;
   top.pp = pp"vec(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
   
   local subType::Type = head(e.typereps);
@@ -201,7 +197,6 @@ top::Expr ::= args::Exprs e::Exprs
 abstract production deleteVector
 top::Stmt ::= e::Expr
 {
-  propagate substituted;
   top.pp = pp"delete ${e.pp};";
   top.functionDefs := [];
   
@@ -245,7 +240,6 @@ top::Exprs ::=
 abstract production concatVector
 top::Expr ::= e1::Expr e2::Expr
 {
-  propagate substituted;
   top.pp = pp"${e1.pp} + ${e2.pp}";
   
   local subType::Type = vectorSubType(e1.typerep);
@@ -273,7 +267,6 @@ top::Expr ::= e1::Expr e2::Expr
 abstract production equalsVector
 top::Expr ::= e1::Expr e2::Expr
 {
-  propagate substituted;
   top.pp = pp"${e1.pp} == ${e2.pp}";
   
   local subType::Type = vectorSubType(e1.typerep);
@@ -291,7 +284,6 @@ top::Expr ::= e1::Expr e2::Expr
 abstract production addressOfSubscriptVector
 top::Expr ::= e1::Expr e2::Expr
 {
-  propagate substituted;
   top.pp = pp"${e1.pp}[${e2.pp}]";
   
   local subType::Type = vectorSubType(e1.typerep);
@@ -320,7 +312,6 @@ top::Expr ::= e1::Expr e2::Expr
 abstract production callMemberVector
 top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
 {
-  propagate substituted;
   
   forwards to
     case rhs.name, a of
@@ -335,7 +326,6 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
 abstract production copyVector
 top::Expr ::= e::Expr
 {
-  propagate substituted;
   top.pp = pp"${e.pp}.copy()";
   
   local subType::Type = vectorSubType(e.typerep);
@@ -351,7 +341,6 @@ top::Expr ::= e::Expr
 abstract production appendVector
 top::Expr ::= lhs::Expr elem::Expr
 {
-  propagate substituted;
   top.pp = pp"${lhs.pp}.append(${elem.pp})";
   
   local subType::Type = vectorSubType(lhs.typerep);
@@ -371,7 +360,6 @@ top::Expr ::= lhs::Expr elem::Expr
 abstract production insertVector
 top::Expr ::= lhs::Expr index::Expr elem::Expr
 {
-  propagate substituted;
   top.pp = pp"${lhs.pp}.insert(${index.pp}, ${elem.pp})";
   
   local subType::Type = vectorSubType(lhs.typerep);
@@ -395,7 +383,6 @@ top::Expr ::= lhs::Expr index::Expr elem::Expr
 abstract production extendVector
 top::Expr ::= e1::Expr e2::Expr
 {
-  propagate substituted;
   top.pp = pp"${e1.pp}.extend(${e2.pp})";
   
   local subType::Type = vectorSubType(e1.typerep);
@@ -413,7 +400,6 @@ top::Expr ::= e1::Expr e2::Expr
 abstract production memberVector
 top::Expr ::= lhs::Expr deref::Boolean rhs::Name
 {
-  propagate substituted;
   
   forwards to
     case rhs.name of
@@ -427,7 +413,6 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name
 abstract production sizeVector
 top::Expr ::= e::Expr
 {
-  propagate substituted;
   top.pp = pp"${e.pp}.size";
   
   local subType::Type = vectorSubType(e.typerep);
@@ -447,7 +432,6 @@ top::Expr ::= e::Expr
 abstract production capacityVector
 top::Expr ::= e::Expr
 {
-  propagate substituted;
   top.pp = pp"${e.pp}.capacity";
   
   local subType::Type = vectorSubType(e.typerep);
