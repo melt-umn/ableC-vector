@@ -348,7 +348,7 @@ top::Expr ::= lhs::Expr elem::Expr
     lhs.errors ++ elem.errors ++
     checkVectorHeaderDef("append_vector", top.location, top.env) ++
     checkVectorType(subType, lhs.typerep, "append", top.location) ++
-    if !compatibleTypes(subType, elem.typerep, true, false)
+    if !typeAssignableTo(subType, elem.typerep)
     then [err(top.location, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
     else [];
   
@@ -370,7 +370,7 @@ top::Expr ::= lhs::Expr index::Expr elem::Expr
     (if index.typerep.isIntegerType
      then []
      else [err(index.location, s"Vector insertion index must have integer type, but got ${showType(index.typerep)}")]) ++
-    (if !compatibleTypes(subType, index.typerep, true, false)
+    (if !typeAssignableTo(subType, elem.typerep)
      then [err(top.location, s"Inserted type must be the same as vector sub-type, got ${showType(subType)} and ${showType(index.typerep)}")]
      else []);
   
