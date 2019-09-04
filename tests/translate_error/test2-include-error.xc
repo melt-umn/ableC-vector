@@ -1,11 +1,11 @@
-// Missing include of <vector.xh>
+// Missing include of vector.xh, string.xh and gc.h
 #include <stdio.h>
 #include <stdlib.h>
 
 int main(int argc, char **argv) {
-  vector<int> a = vec<int> [1, 2, 3];
+  vector<int> a = vec[1, 2, 3];
   printf("a: %s\n", show(a));
-  vector<int> b = vec<int> [4, 5, 6];
+  vector<int> b = vec[4, 5, 6];
   printf("b: %s\n", show(b));
   vector<int> c = a + b;
   printf("c: %s\n", show(c));
