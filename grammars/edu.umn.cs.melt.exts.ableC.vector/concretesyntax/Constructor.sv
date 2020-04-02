@@ -1,11 +1,6 @@
 grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 
-marking terminal Vec_t 'vec' lexer classes {Cidentifier}, font=font_all;
-
-aspect parser attribute context
-  action {
-    context = addIdentsToScope([name("vec", location=builtin)], Vec_t, context);
-  };
+marking terminal Vec_t 'vec' lexer classes {Keyword, Global};
 
 concrete productions top::PrimaryExpr_c
 | 'vec' '<' sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
