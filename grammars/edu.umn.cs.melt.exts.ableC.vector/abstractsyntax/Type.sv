@@ -7,7 +7,7 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
 {
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
   
-  top.inferredArgs = sub.inferredArgs;
+  top.inferredArgs := sub.inferredArgs;
   sub.argumentType =
     case top.argumentType of
     | extType(_, vectorType(t)) -> t
