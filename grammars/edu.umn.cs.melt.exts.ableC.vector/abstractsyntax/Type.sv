@@ -66,6 +66,7 @@ top::ExtType ::= sub::Type
   -- Overloads for [], []= automatically inferred from above
   top.callMemberProd = just(callMemberVector(_, _, _, _, location=_));
   top.memberProd = just(memberVector(_, _, _, location=_));
+  top.objectInitProd = just(vectorInitializer(_, location=_));
   
   top.showErrors =
     \ l::Location env::Decorated Env ->
