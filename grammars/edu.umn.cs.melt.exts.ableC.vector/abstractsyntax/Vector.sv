@@ -95,7 +95,7 @@ top::Expr ::= sub::Type args::Exprs
   local init::Expr =
     case args of
     | consExpr(_, consExpr(init, _)) -> init
-    | _ -> ableC_Expr { ($directTypeExpr{sub}){0} }
+    | _ -> ableC_Expr { ($directTypeExpr{sub})($directTypeExpr{sub.host}){0} }
     end;
   local allocator::Expr =
     case args of
