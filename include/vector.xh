@@ -34,7 +34,7 @@ static void resize_vector(vector<a> v, size_t new_size) {
   if (new_size > v.capacity) {
     ((_vector_s<a> *)v)->capacity = new_size * 2;
     ((_vector_s<a> *)v)->contents =
-      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
+      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity + 1);
   }
 }
 
@@ -46,7 +46,7 @@ static vector<a> new_vector(size_t size, a init,
                             void (*dealloc)(void *ptr)) {
   size_t capacity = size * 2;
   vector<a> result = (vector<a>)alloc(sizeof(_vector_s<a>));
-  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity)};
+  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity + 1)};
   for (size_t i = 0; i < size; i++) {
     result[i] = init;
   }
