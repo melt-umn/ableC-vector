@@ -44,7 +44,7 @@ top::ExtType ::= sub::Type
         nilQualifier(),
         refIdExtType(
           structSEU(),
-          templateMangledName("_vector_s", foldTemplateArg([typeTemplateArg(sub)])),
+          just(templateMangledName("_vector_s", foldTemplateArg([typeTemplateArg(sub)]))),
           templateMangledRefId("_vector_s", foldTemplateArg([typeTemplateArg(sub)])))));
   top.mangledName = s"vector_${sub.mangledName}_";
   top.isEqualTo =
