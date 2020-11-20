@@ -66,8 +66,9 @@ static void delete_vector(vector<a> v) {
 // Make a shallow copy of a vector
 template<typename a>
 static vector<a> copy_vector(vector<a> v) {
+  a uninit;
   vector<a> result =
-    new vector<a>(v.size, (a){0},
+    new vector<a>(v.size, uninit,
                   ((_vector_s<a> *)v)->alloc,
                   ((_vector_s<a> *)v)->realloc,
                   ((_vector_s<a> *)v)->dealloc);
