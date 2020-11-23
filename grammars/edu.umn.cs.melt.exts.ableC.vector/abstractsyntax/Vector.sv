@@ -22,29 +22,35 @@ top::Expr ::= sub::Type args::Exprs
   local expectedSizeType::Type =
     builtinType(nilQualifier(), unsignedType(longType()));
   local expectedAllocatorType::Type =
-    functionType(
-      pointerType(
-        nilQualifier(),
-        builtinType(nilQualifier(), voidType())),
-      protoFunctionType([builtinType(nilQualifier(), unsignedType(longType()))], false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        pointerType(
+          nilQualifier(),
+          builtinType(nilQualifier(), voidType())),
+        protoFunctionType([builtinType(nilQualifier(), unsignedType(longType()))], false),
+        nilQualifier()));
   local expectedReallocatorType::Type =
-    functionType(
-      pointerType(
-        nilQualifier(),
-        builtinType(nilQualifier(), voidType())),
-      protoFunctionType(
-        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType())),
-         builtinType(nilQualifier(), unsignedType(longType()))],
-        false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        pointerType(
+          nilQualifier(),
+          builtinType(nilQualifier(), voidType())),
+        protoFunctionType(
+          [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType())),
+           builtinType(nilQualifier(), unsignedType(longType()))],
+          false),
+        nilQualifier()));
   local expectedDeallocatorType::Type =
-    functionType(
-      builtinType(nilQualifier(), voidType()),
-      protoFunctionType(
-        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
-        false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        builtinType(nilQualifier(), voidType()),
+        protoFunctionType(
+          [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
+          false),
+        nilQualifier()));
   local localErrors::[Message] =
     args.errors ++
     checkVectorHeaderDef("new_vector", top.location, top.env) ++
