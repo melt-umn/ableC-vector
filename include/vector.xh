@@ -19,11 +19,11 @@ template<typename a>
 static void _check_index_vector(vector<a> v, size_t idx) {
   if ((_vector_s<a> *)v == NULL || ((_vector_s<a> *)v)->contents == NULL) {
     fprintf(stderr, "Cannot access uninitialized vector\n");
-    exit(1);
+    abort();
   }
   if (idx >= v.size || idx < 0) {
     fprintf(stderr, "Vector index out of bounds: size %lu, index %lu\n", v.size, idx);
-    exit(1);
+    abort();
   }
 }
 
