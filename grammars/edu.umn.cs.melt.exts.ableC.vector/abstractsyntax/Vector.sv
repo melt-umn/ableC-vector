@@ -363,6 +363,7 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
     | "insert", consExpr(e1, consExpr(e2, nilExpr())) -> insertVector(lhs, e1, e2, location=top.location)
     | "extend", consExpr(e, nilExpr()) -> extendVector(lhs, e, location=top.location)
     | "copy", nilExpr() -> copyVector(lhs, location=top.location)
+    | "pop", nilExpr() -> popVector(lhs, location=top.location)
     | n, _ -> errorExpr([err(rhs.location, s"Vector does not have field ${n} with ${toString(a.count)} parameters")], location=top.location)
     end;
 }
@@ -378,6 +379,21 @@ top::Expr ::= e::Expr
     checkVectorHeaderDef("copy_vector", top.location, top.env) ++
     checkVectorType(subType, e.typerep, "vector copy", top.location);
   local fwrd::Expr = ableC_Expr { inst copy_vector<$directTypeExpr{subType}>($Expr{e}) };
+  
+  forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production popVector
+top::Expr ::= e::Expr
+{
+  top.pp = pp"${e.pp}.pop()";
+  
+  local subType::Type = vectorSubType(e.typerep);
+  local localErrors::[Message] =
+    e.errors ++
+    checkVectorHeaderDef("pop_vector", top.location, top.env) ++
+    checkVectorType(subType, e.typerep, "vector pop", top.location);
+  local fwrd::Expr = ableC_Expr { inst pop_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
