@@ -19,11 +19,11 @@ template<typename a>
 static void _check_index_vector(vector<a> v, size_t idx) {
   if ((_vector_s<a> *)v == NULL || ((_vector_s<a> *)v)->contents == NULL) {
     fprintf(stderr, "Cannot access uninitialized vector\n");
-    exit(1);
+    abort();
   }
   if (idx >= v.size || idx < 0) {
     fprintf(stderr, "Vector index out of bounds: size %lu, index %lu\n", v.size, idx);
-    exit(1);
+    abort();
   }
 }
 
@@ -34,7 +34,7 @@ static void resize_vector(vector<a> v, size_t new_size) {
   if (new_size > v.capacity) {
     ((_vector_s<a> *)v)->capacity = new_size * 2;
     ((_vector_s<a> *)v)->contents =
-      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity);
+      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity + 1);
   }
 }
 
@@ -46,7 +46,7 @@ static vector<a> new_vector(size_t size, a init,
                             void (*dealloc)(void *ptr)) {
   size_t capacity = size * 2;
   vector<a> result = (vector<a>)alloc(sizeof(_vector_s<a>));
-  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity)};
+  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity + 1)};
   for (size_t i = 0; i < size; i++) {
     result[i] = init;
   }
@@ -66,8 +66,9 @@ static void delete_vector(vector<a> v) {
 // Make a shallow copy of a vector
 template<typename a>
 static vector<a> copy_vector(vector<a> v) {
+  a uninit;
   vector<a> result =
-    new vector<a>(v.size, (a){0},
+    new vector<a>(v.size, uninit,
                   ((_vector_s<a> *)v)->alloc,
                   ((_vector_s<a> *)v)->realloc,
                   ((_vector_s<a> *)v)->dealloc);
@@ -83,6 +84,14 @@ template<typename a>
 static void append_vector(vector<a> v, a elem) {
   resize_vector(v, v.size + 1);
   v[v.size - 1] = elem;
+}
+
+// Pop an element from the end of a vector
+template<typename a>
+static a pop_vector(vector<a> v) {
+  a elem = v[v.size - 1];
+  v.size--;
+  return elem;
 }
 
 // Insert an element at an index into a vector

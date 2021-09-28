@@ -32,6 +32,9 @@ int main(int argc, char **argv) {
   vector<struct foo> e = new vector<struct foo>(4.3, 32); // Invalid size and initializer types
 
   vector<int> f = vec[]; // Can't infer type argument
+
+  vector<int> g = {{{0}}}; // Bad initializer
+  vector<int> h = {.q=42}; // Bad initializer
   
   return 0;
 }
