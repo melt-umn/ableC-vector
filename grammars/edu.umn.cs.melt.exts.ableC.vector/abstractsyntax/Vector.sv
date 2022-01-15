@@ -294,7 +294,7 @@ top::Expr ::= e1::Expr e2::Expr
     checkVectorType(subType, e1.typerep, "concat", top.location) ++
     checkVectorType(subType, e2.typerep, "concat", top.location);
   
-  local vecTempName::String = "_vec_" ++ toString(genInt());
+  local vecTempName::String = "_vec_" ++ toString(genIntT());
   local fwrd::Expr =
     ableC_Expr {
       ({$directTypeExpr{e1.typerep} $name{vecTempName} = $Expr{copyVector(e1, location=builtin)};
@@ -340,8 +340,8 @@ top::Expr ::= e1::Expr e2::Expr
     then []
     else [err(e2.location, s"Vector index must have integer type, but got ${showType(e2.typerep)}")];
   
-  local vecTempName::String = "_vec_" ++ toString(genInt());
-  local indexTempName::String = "_index_" ++ toString(genInt());
+  local vecTempName::String = "_vec_" ++ toString(genIntT());
+  local indexTempName::String = "_index_" ++ toString(genIntT());
   local fwrd::Expr =
     ableC_Expr {
       proto_typedef _vector_s;
