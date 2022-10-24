@@ -34,6 +34,8 @@ int main(int argc, char **argv) {
   printf("e: %s\n", show(e).text);
   vector<int> f = new vector<int>(4, 17);
   printf("f: %s\n", show(f).text);
+  vector<int> g = {1, 2, 3, 4, 5};
+  printf("g: %s\n", show(g).text);
   
   if (a != c)
     return 1;
@@ -51,6 +53,8 @@ int main(int argc, char **argv) {
     return 7;
   if (f[2] != 17)
     return 8;
+  if (g[2] != 3)
+    return 9;
 
   return 0;
 }

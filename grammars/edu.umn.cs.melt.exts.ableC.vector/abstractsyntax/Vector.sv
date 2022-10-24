@@ -22,29 +22,35 @@ top::Expr ::= sub::Type args::Exprs
   local expectedSizeType::Type =
     builtinType(nilQualifier(), unsignedType(longType()));
   local expectedAllocatorType::Type =
-    functionType(
-      pointerType(
-        nilQualifier(),
-        builtinType(nilQualifier(), voidType())),
-      protoFunctionType([builtinType(nilQualifier(), unsignedType(longType()))], false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        pointerType(
+          nilQualifier(),
+          builtinType(nilQualifier(), voidType())),
+        protoFunctionType([builtinType(nilQualifier(), unsignedType(longType()))], false),
+        nilQualifier()));
   local expectedReallocatorType::Type =
-    functionType(
-      pointerType(
-        nilQualifier(),
-        builtinType(nilQualifier(), voidType())),
-      protoFunctionType(
-        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType())),
-         builtinType(nilQualifier(), unsignedType(longType()))],
-        false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        pointerType(
+          nilQualifier(),
+          builtinType(nilQualifier(), voidType())),
+        protoFunctionType(
+          [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType())),
+           builtinType(nilQualifier(), unsignedType(longType()))],
+          false),
+        nilQualifier()));
   local expectedDeallocatorType::Type =
-    functionType(
-      builtinType(nilQualifier(), voidType()),
-      protoFunctionType(
-        [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
-        false),
-      nilQualifier());
+    pointerType(
+      nilQualifier(),
+      functionType(
+        builtinType(nilQualifier(), voidType()),
+        protoFunctionType(
+          [pointerType(nilQualifier(), builtinType(nilQualifier(), voidType()))],
+          false),
+        nilQualifier()));
   local localErrors::[Message] =
     args.errors ++
     checkVectorHeaderDef("new_vector", top.location, top.env) ++
@@ -95,7 +101,7 @@ top::Expr ::= sub::Type args::Exprs
   local init::Expr =
     case args of
     | consExpr(_, consExpr(init, _)) -> init
-    | _ -> ableC_Expr { ($directTypeExpr{sub}){0} }
+    | _ -> ableC_Expr { ($directTypeExpr{sub})($directTypeExpr{sub.host}){0} }
     end;
   local allocator::Expr =
     case args of
@@ -116,6 +122,55 @@ top::Expr ::= sub::Type args::Exprs
     ableC_Expr { inst new_vector<$directTypeExpr{sub}>($Expr{size}, $Expr{init}, $Expr{allocator}, $Expr{reallocator}, $Expr{deallocator}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production vectorInitializer
+top::Initializer ::= i::InitList
+{
+  top.pp = ppConcat([text("{"), ppImplode(text(", "), i.pps), text("}")]);
+  
+  i.vectorInitType =
+    case top.expectedType of
+    | extType(_, vectorType(sub)) -> sub
+    | _ -> error("Vector initializer expected vector type")
+    end;
+
+  -- Needed by flow analysis
+  i.expectedType = top.expectedType;
+  i.expectedTypes = [];
+  i.initIndex = 0;
+  i.tagEnvIn = emptyEnv();
+
+  forwards to
+    exprInitializer(
+      warnExpr(
+        i.vectorInitErrors,
+        constructVector(
+          typeName(directTypeExpr(i.vectorInitType), baseTypeExpr()),
+          nilExpr(), foldExpr(i.vectorInitExprs),
+          location=top.location),
+        location=top.location),
+      location=top.location);
+}
+
+autocopy attribute vectorInitType::Type occurs on InitList, Init;
+monoid attribute vectorInitExprs::[Expr] with [], ++ occurs on InitList, Init;
+monoid attribute vectorInitErrors::[Message] with [], ++ occurs on InitList, Init;
+propagate vectorInitExprs, vectorInitErrors on InitList;
+
+aspect production positionalInit
+top::Init ::= i::Initializer
+{
+  top.vectorInitExprs :=
+    [ableC_Expr { ({$directTypeExpr{top.vectorInitType} _val = $Initializer{i}; _val;}) }];
+  top.vectorInitErrors := [];
+}
+
+aspect production designatedInit
+top::Init ::= d::Designator i::Initializer
+{
+  top.vectorInitExprs := [];
+  top.vectorInitErrors := [err(i.location, "Designated init not permitted in vector initializer")];
 }
 
 abstract production constructVector
@@ -144,7 +199,7 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
               consExpr(
                 mkIntConst(e.count, builtin),
                 consExpr(
-                  ableC_Expr { ($directTypeExpr{sub.typerep}){0} },
+                  ableC_Expr { ($directTypeExpr{sub.typerep})($directTypeExpr{sub.typerep.host}){0} },
                   args)),
               location=top.location)};
         $Stmt{e.vectorInitTrans}
@@ -184,7 +239,7 @@ top::Expr ::= args::Exprs e::Exprs
               consExpr(
                 mkIntConst(e.count, builtin),
                 consExpr(
-                  ableC_Expr { ($directTypeExpr{subType}){0} },
+                  ableC_Expr { ($directTypeExpr{subType})($directTypeExpr{subType.host}){0} },
                   args)),
               location=top.location)};
         $Stmt{e.vectorInitTrans}
@@ -199,6 +254,7 @@ top::Stmt ::= e::Expr
 {
   top.pp = pp"delete ${e.pp};";
   top.functionDefs := [];
+  top.labelDefs := [];
   
   local localErrors :: [Message] =
     e.errors ++
@@ -211,30 +267,19 @@ top::Stmt ::= e::Expr
   forwards to if !null(localErrors) then warnStmt(localErrors) else fwrd;
 }
 
-autocopy attribute vectorInitType::Type occurs on Exprs;
 
-synthesized attribute vectorInitErrors::[Message] occurs on Exprs;
-synthesized attribute vectorInitTrans::Stmt occurs on Exprs;
+attribute vectorInitType, vectorInitErrors occurs on Exprs;
+monoid attribute vectorInitTrans::Stmt with nullStmt(), seqStmt occurs on Exprs;
+propagate vectorInitErrors, vectorInitTrans on Exprs;
 
 aspect production consExpr
 top::Exprs ::= h::Expr t::Exprs
 {
-  top.vectorInitErrors =
-    (if !typeAssignableTo(h.typerep, top.vectorInitType)
-     then [err(h.location, s"Invalid type to vector initializer: Expected ${showType(top.vectorInitType)}, got ${showType(h.typerep)}")]
-     else []) ++ t.vectorInitErrors;
-  top.vectorInitTrans =
+  top.vectorInitErrors <- t.vectorInitErrors;
+  top.vectorInitTrans <-
     ableC_Stmt {
       _vec[$intLiteralExpr{top.argumentPosition}] = $Expr{h};
-      $Stmt{t.vectorInitTrans}
     };
-}
-
-aspect production nilExpr
-top::Exprs ::= 
-{
-  top.vectorInitErrors = [];
-  top.vectorInitTrans = nullStmt();
 }
 
 abstract production concatVector
@@ -319,6 +364,7 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
     | "insert", consExpr(e1, consExpr(e2, nilExpr())) -> insertVector(lhs, e1, e2, location=top.location)
     | "extend", consExpr(e, nilExpr()) -> extendVector(lhs, e, location=top.location)
     | "copy", nilExpr() -> copyVector(lhs, location=top.location)
+    | "pop", nilExpr() -> popVector(lhs, location=top.location)
     | n, _ -> errorExpr([err(rhs.location, s"Vector does not have field ${n} with ${toString(a.count)} parameters")], location=top.location)
     end;
 }
@@ -334,6 +380,21 @@ top::Expr ::= e::Expr
     checkVectorHeaderDef("copy_vector", top.location, top.env) ++
     checkVectorType(subType, e.typerep, "vector copy", top.location);
   local fwrd::Expr = ableC_Expr { inst copy_vector<$directTypeExpr{subType}>($Expr{e}) };
+  
+  forwards to mkErrorCheck(localErrors, fwrd);
+}
+
+abstract production popVector
+top::Expr ::= e::Expr
+{
+  top.pp = pp"${e.pp}.pop()";
+  
+  local subType::Type = vectorSubType(e.typerep);
+  local localErrors::[Message] =
+    e.errors ++
+    checkVectorHeaderDef("pop_vector", top.location, top.env) ++
+    checkVectorType(subType, e.typerep, "vector pop", top.location);
+  local fwrd::Expr = ableC_Expr { inst pop_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
