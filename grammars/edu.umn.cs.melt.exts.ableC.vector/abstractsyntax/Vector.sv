@@ -18,6 +18,7 @@ abstract production newVector
 top::Expr ::= sub::Type args::Exprs
 {
   top.pp = pp"new vector<${sub.lpp}${sub.rpp}>(${ppImplode(pp", ", args.pps)})";
+  propagate env, controlStmtContext;
   
   local expectedSizeType::Type =
     builtinType(nilQualifier(), unsignedType(longType()));
@@ -128,6 +129,7 @@ abstract production vectorInitializer
 top::Initializer ::= i::InitList
 {
   top.pp = ppConcat([text("{"), ppImplode(text(", "), i.pps), text("}")]);
+  propagate env, controlStmtContext;
   
   i.vectorInitType =
     case top.expectedType of
@@ -153,10 +155,10 @@ top::Initializer ::= i::InitList
       location=top.location);
 }
 
-autocopy attribute vectorInitType::Type occurs on InitList, Init;
+inherited attribute vectorInitType::Type occurs on InitList, Init;
 monoid attribute vectorInitExprs::[Expr] with [], ++ occurs on InitList, Init;
 monoid attribute vectorInitErrors::[Message] with [], ++ occurs on InitList, Init;
-propagate vectorInitExprs, vectorInitErrors on InitList;
+propagate vectorInitType, vectorInitExprs, vectorInitErrors on InitList;
 
 aspect production positionalInit
 top::Init ::= i::Initializer
@@ -177,6 +179,7 @@ abstract production constructVector
 top::Expr ::= sub::TypeName args::Exprs e::Exprs
 {
   top.pp = pp"vec<${sub.pp}>(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
+  propagate controlStmtContext;
   
   local localErrors::[Message] =
     sub.errors ++ args.errors ++ e.errors ++
@@ -213,6 +216,7 @@ abstract production inferredConstructVector
 top::Expr ::= args::Exprs e::Exprs
 {
   top.pp = pp"vec(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
+  propagate env, controlStmtContext;
   
   local subType::Type = head(e.typereps);
   
@@ -255,6 +259,7 @@ top::Stmt ::= e::Expr
   top.pp = pp"delete ${e.pp};";
   top.functionDefs := [];
   top.labelDefs := [];
+  propagate env, controlStmtContext;
   
   local localErrors :: [Message] =
     e.errors ++
@@ -286,6 +291,7 @@ abstract production concatVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp} + ${e2.pp}";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
@@ -313,6 +319,7 @@ abstract production equalsVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp} == ${e2.pp}";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
@@ -330,6 +337,7 @@ abstract production addressOfSubscriptVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp}[${e2.pp}]";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
@@ -373,6 +381,7 @@ abstract production copyVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.copy()";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local localErrors::[Message] =
@@ -388,6 +397,7 @@ abstract production popVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.pop()";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local localErrors::[Message] =
@@ -403,6 +413,7 @@ abstract production appendVector
 top::Expr ::= lhs::Expr elem::Expr
 {
   top.pp = pp"${lhs.pp}.append(${elem.pp})";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(lhs.typerep);
   local localErrors::[Message] =
@@ -422,6 +433,7 @@ abstract production insertVector
 top::Expr ::= lhs::Expr index::Expr elem::Expr
 {
   top.pp = pp"${lhs.pp}.insert(${index.pp}, ${elem.pp})";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(lhs.typerep);
   local localErrors::[Message] =
@@ -445,6 +457,7 @@ abstract production extendVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp}.extend(${e2.pp})";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
@@ -475,6 +488,7 @@ abstract production sizeVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.size";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local fwrd::Expr =
@@ -494,6 +508,7 @@ abstract production capacityVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.capacity";
+  propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local fwrd::Expr =
