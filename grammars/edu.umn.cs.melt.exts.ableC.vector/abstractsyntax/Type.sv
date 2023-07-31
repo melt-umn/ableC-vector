@@ -28,7 +28,7 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
         foldDecl(
           sub.decls ++
           [templateTypeExprInstDecl(
-            q, name("_vector_s", location=builtin),
+            q, name("_vector_s"),
             consTemplateArg(typeTemplateArg(sub.typerep), nilTemplateArg()))]),
         extTypeExpr(q, vectorType(sub.typerep)));
 }
@@ -55,19 +55,19 @@ top::ExtType ::= sub::Type
       | _ -> false
       end;
   
-  top.newProd = just(newVector(sub, _, location=_));
-  top.deleteProd = just(deleteVector(_));
-  top.lAddProd = just(concatVector(_, _, location=_));
-  top.rAddProd = just(concatVector(_, _, location=_));
+  top.newProd = just(newVector(sub));
+  top.deleteProd = just(deleteVector);
+  top.lAddProd = just(concatVector);
+  top.rAddProd = just(concatVector);
   -- Overload for += automatically inferred from above
-  top.lEqualsProd = just(equalsVector(_, _, location=_));
-  top.rEqualsProd = just(equalsVector(_, _, location=_));
+  top.lEqualsProd = just(equalsVector);
+  top.rEqualsProd = just(equalsVector);
   -- Overload for != automatically inferred from above
-  top.addressOfArraySubscriptProd = just(addressOfSubscriptVector(_, _, location=_));
+  top.addressOfArraySubscriptProd = just(addressOfSubscriptVector);
   -- Overloads for [], []= automatically inferred from above
-  top.callMemberProd = just(callMemberVector(_, _, _, _, location=_));
-  top.memberProd = just(memberVector(_, _, _, location=_));
-  top.objectInitProd = just(vectorInitializer(_, location=_));
+  top.callMemberProd = just(callMemberVector);
+  top.memberProd = just(memberVector);
+  top.objectInitProd = just(vectorInitializer);
   
   top.showErrors =
     \ l::Location env::Decorated Env ->

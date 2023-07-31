@@ -58,39 +58,39 @@ top::Expr ::= sub::Type args::Exprs
     case args of
     | consExpr(size, _) ->
       if typeAssignableTo(expectedSizeType, size.typerep) then []
-      else [err(size.location, s"Size must have type unsigned long (got ${showType(size.typerep)})")]
+      else [errFromOrigin(size, s"Size must have type unsigned long (got ${showType(size.typerep)})")]
     | _ -> []
     end ++
     case args of
     | consExpr(_, consExpr(init, _)) ->
       if typeAssignableTo(sub, init.typerep) then []
-      else [err(init.location, s"Initial value must have type ${showType(sub)} (got ${showType(init.typerep)})")]
+      else [errFromOrigin(init, s"Initial value must have type ${showType(sub)} (got ${showType(init.typerep)})")]
     | _ -> []
     end ++
     case args of
     | consExpr(_, consExpr(_, consExpr(allocator, _))) ->
       if typeAssignableTo(expectedAllocatorType, allocator.typerep) then []
-      else [err(allocator.location, s"Allocator must have type void *(unsigned long) (got ${showType(allocator.typerep)})")]
+      else [errFromOrigin(allocator, s"Allocator must have type void *(unsigned long) (got ${showType(allocator.typerep)})")]
     | _ ->
       if !null(lookupValue("GC_malloc", top.env))
       then []
-      else [err(top.location, "Vector expression lacking an explicit allocator requires <gc.h> to be included.")]
+      else [errFromOrigin(top, "Vector expression lacking an explicit allocator requires <gc.h> to be included.")]
     end ++
     case args of
     | consExpr(_, consExpr(_, consExpr(_, consExpr(reallocator, _)))) ->
       if typeAssignableTo(expectedReallocatorType, reallocator.typerep) then []
-      else [err(reallocator.location, s"Reallocator must have type void *(void *, unsigned long) (got ${showType(reallocator.typerep)})")]
+      else [errFromOrigin(reallocator, s"Reallocator must have type void *(void *, unsigned long) (got ${showType(reallocator.typerep)})")]
     | _ -> []
     end ++
     case args of
     | consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(deallocator, _))))) ->
       if typeAssignableTo(expectedDeallocatorType, deallocator.typerep) then []
-      else [err(deallocator.location, s"Deallocator must have type void(void *) (got ${showType(deallocator.typerep)})")]
+      else [errFromOrigin(deallocator, s"Deallocator must have type void(void *) (got ${showType(deallocator.typerep)})")]
     | _ -> []
     end ++
     case args of
     | consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(_, consExpr(_, _)))))) ->
-      [err(top.location, s"Too many arguments in vector expression")]
+      [errFromOrigin(top, s"Too many arguments in vector expression")]
     | _ -> []
     end;
   
@@ -149,10 +149,7 @@ top::Initializer ::= i::InitList
         i.vectorInitErrors,
         constructVector(
           typeName(directTypeExpr(i.vectorInitType), baseTypeExpr()),
-          nilExpr(), foldExpr(i.vectorInitExprs),
-          location=top.location),
-        location=top.location),
-      location=top.location);
+          nilExpr(), foldExpr(i.vectorInitExprs))));
 }
 
 inherited attribute vectorInitType::Type occurs on InitList, Init;
@@ -172,7 +169,7 @@ aspect production designatedInit
 top::Init ::= d::Designator i::Initializer
 {
   top.vectorInitExprs := [];
-  top.vectorInitErrors := [err(i.location, "Designated init not permitted in vector initializer")];
+  top.vectorInitErrors := [errFromOrigin(i, "Designated init not permitted in vector initializer")];
 }
 
 abstract production constructVector
@@ -203,8 +200,7 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
                 mkIntConst(e.count, builtin),
                 consExpr(
                   ableC_Expr { ($directTypeExpr{sub.typerep})($directTypeExpr{sub.typerep.host}){0} },
-                  args)),
-              location=top.location)};
+                  args)))};
         $Stmt{e.vectorInitTrans}
         _vec;})
     };
@@ -223,7 +219,7 @@ top::Expr ::= args::Exprs e::Exprs
   local localErrors::[Message] =
     args.errors ++ e.errors ++
     (if e.count == 0
-     then [err(top.location, "Can't infer type argument for empty vector")]
+     then [errFromOrigin(top, "Can't infer type argument for empty vector")]
      else e.vectorInitErrors) ++
     checkVectorHeaderDef("new_vector", top.location, top.env);
   
@@ -244,8 +240,7 @@ top::Expr ::= args::Exprs e::Exprs
                 mkIntConst(e.count, builtin),
                 consExpr(
                   ableC_Expr { ($directTypeExpr{subType})($directTypeExpr{subType.host}){0} },
-                  args)),
-              location=top.location)};
+                  args)))};
         $Stmt{e.vectorInitTrans}
         _vec;})
     };
@@ -303,12 +298,11 @@ top::Expr ::= e1::Expr e2::Expr
   local vecTempName::String = "_vec_" ++ toString(genInt());
   local fwrd::Expr =
     ableC_Expr {
-      ({$directTypeExpr{e1.typerep} $name{vecTempName} = $Expr{copyVector(e1, location=builtin)};
+      ({$directTypeExpr{e1.typerep} $name{vecTempName} = $Expr{copyVector(e1)};
         $Expr{
           extendVector(
-            declRefExpr(name(vecTempName, location=builtin), location=builtin),
-            e2,
-            location=builtin)};
+            declRefExpr(name(vecTempName)),
+            e2)};
         $name{vecTempName};})
     };
   
@@ -346,7 +340,7 @@ top::Expr ::= e1::Expr e2::Expr
     checkVectorType(subType, e1.typerep, "[]", top.location) ++
     if e2.typerep.isIntegerType
     then []
-    else [err(e2.location, s"Vector index must have integer type, but got ${showType(e2.typerep)}")];
+    else [errFromOrigin(e2, s"Vector index must have integer type, but got ${showType(e2.typerep)}")];
   
   local vecTempName::String = "_vec_" ++ toString(genInt());
   local indexTempName::String = "_index_" ++ toString(genInt());
@@ -368,12 +362,12 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name a::Exprs
   
   forwards to
     case rhs.name, a of
-      "append", consExpr(e, nilExpr()) -> appendVector(lhs, e, location=top.location)
-    | "insert", consExpr(e1, consExpr(e2, nilExpr())) -> insertVector(lhs, e1, e2, location=top.location)
-    | "extend", consExpr(e, nilExpr()) -> extendVector(lhs, e, location=top.location)
-    | "copy", nilExpr() -> copyVector(lhs, location=top.location)
-    | "pop", nilExpr() -> popVector(lhs, location=top.location)
-    | n, _ -> errorExpr([err(rhs.location, s"Vector does not have field ${n} with ${toString(a.count)} parameters")], location=top.location)
+      "append", consExpr(e, nilExpr()) -> appendVector(lhs, e)
+    | "insert", consExpr(e1, consExpr(e2, nilExpr())) -> insertVector(lhs, e1, e2)
+    | "extend", consExpr(e, nilExpr()) -> extendVector(lhs, e)
+    | "copy", nilExpr() -> copyVector(lhs)
+    | "pop", nilExpr() -> popVector(lhs)
+    | n, _ -> errorExpr([errFromOrigin(rhs, s"Vector does not have field ${n} with ${toString(a.count)} parameters")])
     end;
 }
 
@@ -421,7 +415,7 @@ top::Expr ::= lhs::Expr elem::Expr
     checkVectorHeaderDef("append_vector", top.location, top.env) ++
     checkVectorType(subType, lhs.typerep, "append", top.location) ++
     if !typeAssignableTo(subType, elem.typerep)
-    then [err(top.location, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
+    then [errFromOrigin(top, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
     else [];
   
   local fwrd::Expr = ableC_Expr { inst append_vector<$directTypeExpr{subType}>($Expr{lhs}, $Expr{elem}) };
@@ -442,9 +436,9 @@ top::Expr ::= lhs::Expr index::Expr elem::Expr
     checkVectorType(subType, lhs.typerep, "insert", top.location) ++
     (if index.typerep.isIntegerType
      then []
-     else [err(index.location, s"Vector insertion index must have integer type, but got ${showType(index.typerep)}")]) ++
+     else [errFromOrigin(index, s"Vector insertion index must have integer type, but got ${showType(index.typerep)}")]) ++
     (if !typeAssignableTo(subType, elem.typerep)
-     then [err(top.location, s"Inserted type must be the same as vector sub-type, got ${showType(subType)} and ${showType(index.typerep)}")]
+     then [errFromOrigin(top, s"Inserted type must be the same as vector sub-type, got ${showType(subType)} and ${showType(index.typerep)}")]
      else []);
   
   local fwrd::Expr =
@@ -477,10 +471,10 @@ top::Expr ::= lhs::Expr deref::Boolean rhs::Name
   
   forwards to
     case rhs.name of
-    | "size"      -> sizeVector(lhs, location=top.location)
-    | "length"    -> sizeVector(lhs, location=top.location)
-    | "capacity"  -> capacityVector(lhs, location=top.location)
-    | n -> errorExpr([err(rhs.location, s"Vector does not have field ${n}")], location=top.location)
+    | "size"      -> sizeVector(lhs)
+    | "length"    -> sizeVector(lhs)
+    | "capacity"  -> capacityVector(lhs)
+    | n -> errorExpr([errFromOrigin(rhs, s"Vector does not have field ${n}")])
     end;
 }
 
@@ -543,5 +537,3 @@ function checkVectorType
     then []
     else [err(loc, s"Operand to ${op} expected vector<${showType(sub)}> (got ${showType(t)})")];
 }
-
-global builtin::Location = builtinLoc("vector");
