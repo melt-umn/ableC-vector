@@ -18,6 +18,7 @@ abstract production newVector
 top::Expr ::= sub::Type args::Exprs
 {
   top.pp = pp"new vector<${sub.lpp}${sub.rpp}>(${ppImplode(pp", ", args.pps)})";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local expectedSizeType::Type =
@@ -54,7 +55,7 @@ top::Expr ::= sub::Type args::Exprs
         nilQualifier()));
   local localErrors::[Message] =
     args.errors ++
-    checkVectorHeaderDef("new_vector", top.location, top.env) ++
+    checkVectorHeaderDef("new_vector", top.env) ++
     case args of
     | consExpr(size, _) ->
       if typeAssignableTo(expectedSizeType, size.typerep) then []
@@ -102,7 +103,7 @@ top::Expr ::= sub::Type args::Exprs
   local init::Expr =
     case args of
     | consExpr(_, consExpr(init, _)) -> init
-    | _ -> ableC_Expr { ($directTypeExpr{sub})($directTypeExpr{sub.host}){0} }
+    | _ -> ableC_Expr { ($directTypeExpr{sub})$Expr{defaultInitExpr(sub.host)} }
     end;
   local allocator::Expr =
     case args of
@@ -129,6 +130,7 @@ abstract production vectorInitializer
 top::Initializer ::= i::InitList
 {
   top.pp = ppConcat([text("{"), ppImplode(text(", "), i.pps), text("}")]);
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   i.vectorInitType =
@@ -160,6 +162,7 @@ propagate vectorInitType, vectorInitExprs, vectorInitErrors on InitList;
 aspect production positionalInit
 top::Init ::= i::Initializer
 {
+  attachNote extensionGenerated("ableC-vector");
   top.vectorInitExprs :=
     [ableC_Expr { ({$directTypeExpr{top.vectorInitType} _val = $Initializer{i}; _val;}) }];
   top.vectorInitErrors := [];
@@ -176,12 +179,13 @@ abstract production constructVector
 top::Expr ::= sub::TypeName args::Exprs e::Exprs
 {
   top.pp = pp"vec<${sub.pp}>(${ppImplode(pp", ", args.pps)})[${ppImplode(pp", ", e.pps)}]";
+  attachNote extensionGenerated("ableC-vector");
   propagate controlStmtContext;
   
   local localErrors::[Message] =
     sub.errors ++ args.errors ++ e.errors ++
     e.vectorInitErrors ++
-    checkVectorHeaderDef("new_vector", top.location, top.env);
+    checkVectorHeaderDef("new_vector", top.env);
   
   sub.env = globalEnv(top.env);
   args.env = addEnv(sub.defs, sub.env);
@@ -192,12 +196,12 @@ top::Expr ::= sub::TypeName args::Exprs e::Exprs
   local fwrd::Expr =
     ableC_Expr {
       ({$Decl{decls(foldDecl(sub.decls))}
-        $BaseTypeExpr{vectorTypeExpr(nilQualifier(), sub, builtin)} _vec =
+        $BaseTypeExpr{vectorTypeExpr(nilQualifier(), sub)} _vec =
           $Expr{
             newVector(
               sub.typerep,
               consExpr(
-                mkIntConst(e.count, builtin),
+                mkIntConst(e.count),
                 consExpr(
                   ableC_Expr { ($directTypeExpr{sub.typerep})($directTypeExpr{sub.typerep.host}){0} },
                   args)))};
@@ -221,7 +225,7 @@ top::Expr ::= args::Exprs e::Exprs
     (if e.count == 0
      then [errFromOrigin(top, "Can't infer type argument for empty vector")]
      else e.vectorInitErrors) ++
-    checkVectorHeaderDef("new_vector", top.location, top.env);
+    checkVectorHeaderDef("new_vector", top.env);
   
   e.argumentPosition = 0;
   e.vectorInitType = subType;
@@ -231,13 +235,12 @@ top::Expr ::= args::Exprs e::Exprs
       ({$BaseTypeExpr{
         vectorTypeExpr(
           nilQualifier(),
-          typeName(directTypeExpr(subType), baseTypeExpr()),
-          builtin)} _vec =
+          typeName(directTypeExpr(subType), baseTypeExpr()))} _vec =
           $Expr{
             newVector(
               subType,
               consExpr(
-                mkIntConst(e.count, builtin),
+                mkIntConst(e.count),
                 consExpr(
                   ableC_Expr { ($directTypeExpr{subType})($directTypeExpr{subType.host}){0} },
                   args)))};
@@ -252,13 +255,14 @@ abstract production deleteVector
 top::Stmt ::= e::Expr
 {
   top.pp = pp"delete ${e.pp};";
+  attachNote extensionGenerated("ableC-vector");
   top.functionDefs := [];
   top.labelDefs := [];
   propagate env, controlStmtContext;
   
   local localErrors :: [Message] =
     e.errors ++
-    checkVectorHeaderDef("delete_vector", e.location, top.env);
+    checkVectorHeaderDef("delete_vector", top.env);
   
   local subType::Type = vectorSubType(e.typerep);
   local fwrd::Stmt =
@@ -275,6 +279,7 @@ propagate vectorInitErrors, vectorInitTrans on Exprs;
 aspect production consExpr
 top::Exprs ::= h::Expr t::Exprs
 {
+  attachNote extensionGenerated("ableC-vector");
   top.vectorInitErrors <- t.vectorInitErrors;
   top.vectorInitTrans <-
     ableC_Stmt {
@@ -286,14 +291,15 @@ abstract production concatVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp} + ${e2.pp}";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
     e1.errors ++ e2.errors ++
-    checkVectorHeaderDef("copy_vector", top.location, top.env) ++
-    checkVectorType(subType, e1.typerep, "concat", top.location) ++
-    checkVectorType(subType, e2.typerep, "concat", top.location);
+    checkVectorHeaderDef("copy_vector", top.env) ++
+    checkVectorType(subType, e1, "concat") ++
+    checkVectorType(subType, e2, "concat");
   
   local vecTempName::String = "_vec_" ++ toString(genInt());
   local fwrd::Expr =
@@ -313,14 +319,15 @@ abstract production equalsVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp} == ${e2.pp}";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
     e1.errors ++ e2.errors ++
-    checkVectorHeaderDef("equals_vector", top.location, top.env) ++
-    checkVectorType(subType, e1.typerep, "==", top.location) ++
-    checkVectorType(subType, e2.typerep, "==", top.location);
+    checkVectorHeaderDef("equals_vector", top.env) ++
+    checkVectorType(subType, e1, "==") ++
+    checkVectorType(subType, e2, "==");
     -- TODO: Check that == is defined for subType
   local fwrd::Expr = ableC_Expr { inst equals_vector<$directTypeExpr{subType}>($Expr{e1}, $Expr{e2}) };
   
@@ -331,13 +338,14 @@ abstract production addressOfSubscriptVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp}[${e2.pp}]";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
     e1.errors ++ e2.errors ++
-    checkVectorHeaderDef("_check_index_vector", top.location, top.env) ++
-    checkVectorType(subType, e1.typerep, "[]", top.location) ++
+    checkVectorHeaderDef("_check_index_vector", top.env) ++
+    checkVectorType(subType, e1, "[]") ++
     if e2.typerep.isIntegerType
     then []
     else [errFromOrigin(e2, s"Vector index must have integer type, but got ${showType(e2.typerep)}")];
@@ -375,13 +383,14 @@ abstract production copyVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.copy()";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local localErrors::[Message] =
     e.errors ++
-    checkVectorHeaderDef("copy_vector", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "vector copy", top.location);
+    checkVectorHeaderDef("copy_vector", top.env) ++
+    checkVectorType(subType, e, "vector copy");
   local fwrd::Expr = ableC_Expr { inst copy_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
@@ -391,13 +400,14 @@ abstract production popVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.pop()";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
   local localErrors::[Message] =
     e.errors ++
-    checkVectorHeaderDef("pop_vector", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "vector pop", top.location);
+    checkVectorHeaderDef("pop_vector", top.env) ++
+    checkVectorType(subType, e, "vector pop");
   local fwrd::Expr = ableC_Expr { inst pop_vector<$directTypeExpr{subType}>($Expr{e}) };
   
   forwards to mkErrorCheck(localErrors, fwrd);
@@ -407,13 +417,14 @@ abstract production appendVector
 top::Expr ::= lhs::Expr elem::Expr
 {
   top.pp = pp"${lhs.pp}.append(${elem.pp})";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(lhs.typerep);
   local localErrors::[Message] =
     lhs.errors ++ elem.errors ++
-    checkVectorHeaderDef("append_vector", top.location, top.env) ++
-    checkVectorType(subType, lhs.typerep, "append", top.location) ++
+    checkVectorHeaderDef("append_vector", top.env) ++
+    checkVectorType(subType, lhs, "append") ++
     if !typeAssignableTo(subType, elem.typerep)
     then [errFromOrigin(top, s"Appended type must be the same as vector sub-type, got ${showType(subType)} and ${showType(elem.typerep)}")]
     else [];
@@ -427,13 +438,14 @@ abstract production insertVector
 top::Expr ::= lhs::Expr index::Expr elem::Expr
 {
   top.pp = pp"${lhs.pp}.insert(${index.pp}, ${elem.pp})";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(lhs.typerep);
   local localErrors::[Message] =
     lhs.errors ++ index.errors ++ elem.errors ++
-    checkVectorHeaderDef("insert_vector", top.location, top.env) ++
-    checkVectorType(subType, lhs.typerep, "insert", top.location) ++
+    checkVectorHeaderDef("insert_vector", top.env) ++
+    checkVectorType(subType, lhs, "insert") ++
     (if index.typerep.isIntegerType
      then []
      else [errFromOrigin(index, s"Vector insertion index must have integer type, but got ${showType(index.typerep)}")]) ++
@@ -451,14 +463,15 @@ abstract production extendVector
 top::Expr ::= e1::Expr e2::Expr
 {
   top.pp = pp"${e1.pp}.extend(${e2.pp})";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e1.typerep);
   local localErrors::[Message] =
     e1.errors ++ e2.errors ++
-    checkVectorHeaderDef("extend_vector", top.location, top.env) ++
-    checkVectorType(subType, e1.typerep, "extend", top.location) ++
-    checkVectorType(subType, e2.typerep, "extend", top.location);
+    checkVectorHeaderDef("extend_vector", top.env) ++
+    checkVectorType(subType, e1, "extend") ++
+    checkVectorType(subType, e2, "extend");
   
   local fwrd::Expr = ableC_Expr { inst extend_vector<$directTypeExpr{subType}>($Expr{e1}, $Expr{e2}) };
   
@@ -482,6 +495,7 @@ abstract production sizeVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.size";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
@@ -492,8 +506,8 @@ top::Expr ::= e::Expr
     };
   local localErrors::[Message] =
     e.errors ++
-    checkVectorHeaderDef("_vector_s", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "size", top.location);
+    checkVectorHeaderDef("_vector_s", top.env) ++
+    checkVectorType(subType, e, "size");
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
@@ -502,6 +516,7 @@ abstract production capacityVector
 top::Expr ::= e::Expr
 {
   top.pp = pp"${e.pp}.capacity";
+  attachNote extensionGenerated("ableC-vector");
   propagate env, controlStmtContext;
   
   local subType::Type = vectorSubType(e.typerep);
@@ -512,28 +527,28 @@ top::Expr ::= e::Expr
     };
   local localErrors::[Message] =
     e.errors ++
-    checkVectorHeaderDef("_vector_s", top.location, top.env) ++
-    checkVectorType(subType, e.typerep, "capacity", top.location);
+    checkVectorHeaderDef("_vector_s", top.env) ++
+    checkVectorType(subType, e, "capacity");
   
   forwards to mkErrorCheck(localErrors, fwrd);
 }
 
 -- Check the given env for the given template name
 function checkVectorHeaderDef
-[Message] ::= n::String loc::Location env::Decorated Env
+[Message] ::= n::String env::Decorated Env
 {
   return
     if !null(lookupTemplate(n, env))
     then []
-    else [err(loc, "Missing include of vector.xh")];
+    else [errFromOrigin(ambientOrigin(), "Missing include of vector.xh")];
 }
 
 -- Check that operand has vector type
 function checkVectorType
-[Message] ::= sub::Type t::Type op::String loc::Location
+[Message] ::= sub::Type e::Decorated Expr with {env, controlStmtContext} op::String
 {
   return
-    if typeAssignableTo(extType(nilQualifier(), vectorType(sub)), t)
+    if typeAssignableTo(extType(nilQualifier(), vectorType(sub)), e.typerep)
     then []
-    else [err(loc, s"Operand to ${op} expected vector<${showType(sub)}> (got ${showType(t)})")];
+    else [errFromOrigin(e, s"Operand to ${op} expected vector<${showType(sub)}> (got ${showType(e.typerep)})")];
 }

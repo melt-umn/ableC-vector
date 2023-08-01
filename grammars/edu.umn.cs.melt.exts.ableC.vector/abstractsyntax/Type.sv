@@ -3,7 +3,7 @@ grammar edu:umn:cs:melt:exts:ableC:vector:abstractsyntax;
 import edu:umn:cs:melt:ableC:abstractsyntax:overloadable;
 
 abstract production vectorTypeExpr 
-top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
+top::BaseTypeExpr ::= q::Qualifiers sub::TypeName
 {
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
   propagate controlStmtContext;
@@ -18,7 +18,7 @@ top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
   sub.env = globalEnv(top.env);
   
   local localErrors::[Message] =
-    sub.errors ++ checkVectorHeaderDef("_vector_s", loc, top.env);
+    sub.errors ++ checkVectorHeaderDef("_vector_s", top.env);
   
   forwards to
     if !null(localErrors)
@@ -55,7 +55,7 @@ top::ExtType ::= sub::Type
       | _ -> false
       end;
   
-  top.newProd = just(newVector(sub));
+  top.newProd = just(newVector(sub, _));
   top.deleteProd = just(deleteVector);
   top.lAddProd = just(concatVector);
   top.rAddProd = just(concatVector);
@@ -70,9 +70,9 @@ top::ExtType ::= sub::Type
   top.objectInitProd = just(vectorInitializer);
   
   top.showErrors =
-    \ l::Location env::Decorated Env ->
-      sub.showErrors(l, env) ++
-      checkVectorHeaderDef("show_vector", l, env);
+    \ e::Decorated Expr with {env} ->
+      sub.showErrors(e) ++
+      checkVectorHeaderDef("show_vector", e.env);
   top.showProd =
     \ e::Expr -> ableC_Expr { inst show_vector<$directTypeExpr{sub}>($Expr{e}) };
 }
