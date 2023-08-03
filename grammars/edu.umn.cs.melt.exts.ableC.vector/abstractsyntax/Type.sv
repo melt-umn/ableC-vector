@@ -70,9 +70,9 @@ top::ExtType ::= sub::Type
   top.objectInitProd = just(vectorInitializer);
   
   top.showErrors =
-    \ e::Decorated Expr with {env} ->
-      sub.showErrors(e) ++
-      checkVectorHeaderDef("show_vector", e.env);
+    \ env::Decorated Env ->
+      sub.showErrors(env) ++
+      checkVectorHeaderDef("show_vector", env);
   top.showProd =
     \ e::Expr -> ableC_Expr { inst show_vector<$directTypeExpr{sub}>($Expr{e}) };
 }
