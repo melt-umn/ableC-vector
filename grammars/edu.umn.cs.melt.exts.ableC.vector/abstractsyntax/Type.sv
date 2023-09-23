@@ -6,6 +6,7 @@ abstract production vectorTypeExpr
 top::BaseTypeExpr ::= q::Qualifiers sub::TypeName loc::Location
 {
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
+  propagate controlStmtContext;
   
   top.inferredArgs := sub.inferredArgs;
   sub.argumentType =
