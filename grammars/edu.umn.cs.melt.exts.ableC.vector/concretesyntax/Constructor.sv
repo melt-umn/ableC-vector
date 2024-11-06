@@ -3,24 +3,15 @@ grammar edu:umn:cs:melt:exts:ableC:vector:concretesyntax;
 marking terminal Vec_t 'vec' lexer classes {Keyword, Global};
 
 concrete productions top::PrimaryExpr_c
-| 'vec' '<' sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
-  { top.ast = constructVector(sub.ast, foldExpr(args.ast), foldExpr(elems.ast)); }
-| 'vec' '<' sub::TypeName_c '>' '(' args::ArgumentExprList_c ')' '[' ']'
-  { top.ast = constructVector(sub.ast, foldExpr(args.ast), nilExpr()); }
 | 'vec' '<' sub::TypeName_c '>' '[' elems::VectorConstructorExprList_c ']'
-  { top.ast = constructVector(sub.ast, nilExpr(), foldExpr(elems.ast)); }
+  { top.ast = constructVector(sub.ast, foldr(consVectorExpr, nilVectorExpr(), elems.ast)); }
 | 'vec' '<' sub::TypeName_c '>' '[' ']'
-  { top.ast = constructVector(sub.ast, nilExpr(), nilExpr()); }
-| 'vec' '(' args::ArgumentExprList_c ')' '[' elems::VectorConstructorExprList_c ']'
-  { top.ast = inferredConstructVector(foldExpr(args.ast), foldExpr(elems.ast)); }
-  -- Illegal, but AST provides a better error
-| 'vec' '(' args::ArgumentExprList_c ')' '[' ']'
-  { top.ast = inferredConstructVector(foldExpr(args.ast), nilExpr()); }
+  { top.ast = constructVector(sub.ast, nilVectorExpr()); }
 | 'vec' '[' elems::VectorConstructorExprList_c ']'
-  { top.ast = inferredConstructVector(nilExpr(), foldExpr(elems.ast)); }
+  { top.ast = inferredConstructVector(foldr(consVectorExpr, nilVectorExpr(), elems.ast)); }
   -- Illegal, but AST provides a better error
 | 'vec' '[' ']'
-  { top.ast = inferredConstructVector(nilExpr(), nilExpr()); }
+  { top.ast = inferredConstructVector(nilVectorExpr()); }
 
 -- Can't use ArgumentExprList due to mda restrictions
 closed tracked nonterminal VectorConstructorExprList_c with ast<[Expr]>;

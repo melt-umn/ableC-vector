@@ -1,22 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <arena.h>
 
 #ifndef _VECTOR_XH
 #define _VECTOR_XH
 
 template<typename a>
 struct _vector_s {
-  void *(*alloc)(size_t size);
-  void *(*realloc)(void *ptr, size_t size);
-  void (*dealloc)(void *ptr);
   size_t size;
   size_t capacity;
+  arena_t arena;
   a *contents;
 };
 
 // Check whether an index is valid for a given vector
 template<typename a>
-static void _check_index_vector(vector<a> v, size_t idx) {
+static size_t _check_index_vector(vector<a> v, size_t idx) {
   if ((_vector_s<a> *)v == NULL || ((_vector_s<a> *)v)->contents == NULL) {
     fprintf(stderr, "Cannot access uninitialized vector\n");
     abort();
@@ -25,6 +24,7 @@ static void _check_index_vector(vector<a> v, size_t idx) {
     fprintf(stderr, "Vector index out of bounds: size %lu, index %lu\n", v.size, idx);
     abort();
   }
+  return idx;
 }
 
 // Modify the size of a vector to new_size
@@ -34,49 +34,38 @@ static void resize_vector(vector<a> v, size_t new_size) {
   if (new_size > v.capacity) {
     ((_vector_s<a> *)v)->capacity = new_size * 2;
     ((_vector_s<a> *)v)->contents =
-      ((_vector_s<a> *)v)->realloc(((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity + 1);
+      arena_realloc(((_vector_s<a> *)v)->arena, ((_vector_s<a> *)v)->contents, sizeof(a) * v.capacity + 1);
   }
 }
 
 // Create a new vector with the given size
 template<typename a>
-static vector<a> new_vector(size_t size, a init,
-                            void *(*alloc)(size_t size),
-                            void *(*realloc)(void *ptr, size_t size),
-                            void (*dealloc)(void *ptr)) {
+static vector<a> new_vector(size_t size, a init, arena_t arena) {
   size_t capacity = size * 2;
-  vector<a> result = (vector<a>)alloc(sizeof(_vector_s<a>));
-  *(_vector_s<a> *)result = (_vector_s<a>){alloc, realloc, dealloc, size, capacity, alloc(sizeof(a) * capacity + 1)};
+  vector<a> result = (vector<a>)arena_alloc(arena, sizeof(_vector_s<a>));
+  a *contents = arena_alloc(arena, sizeof(a) * capacity + 1);
+  *(_vector_s<a> *)result = (_vector_s<a>){size, capacity, arena, contents};
   for (size_t i = 0; i < size; i++) {
-    result[i] = init;
+    contents[i] = init;
   }
   return result;
 }
 
-// Free the memory representing a vector
+// Create a new vector from an array
 template<typename a>
-static void delete_vector(vector<a> v) {
-  void (*dealloc)(void *ptr) = ((_vector_s<a> *)v)->dealloc;
-  if (dealloc) {
-    dealloc(((_vector_s<a> *)v)->contents);
-    dealloc((_vector_s<a> *)v);
-  }
+static vector<a> from_array_vector(size_t size, a arr[size], arena_t arena) {
+  size_t capacity = size * 2;
+  vector<a> result = (vector<a>)arena_alloc(arena, sizeof(_vector_s<a>));
+  a *contents = arena_alloc(arena, sizeof(a) * capacity + 1);
+  *(_vector_s<a> *)result = (_vector_s<a>){size, capacity, arena, contents};
+  memcpy(contents, arr, sizeof(a) * size);
+  return result;
 }
 
 // Make a shallow copy of a vector
 template<typename a>
-static vector<a> copy_vector(vector<a> v) {
-  a uninit;
-  vector<a> result =
-    new vector<a>(v.size, uninit,
-                  ((_vector_s<a> *)v)->alloc,
-                  ((_vector_s<a> *)v)->realloc,
-                  ((_vector_s<a> *)v)->dealloc);
-  for (size_t i = 0; i < v.size; i++) {
-    // Note that this uses overloaded =
-    result[i] = v[i];
-  }
-  return result;
+static vector<a> copy_vector(vector<a> v, arena_t arena) {
+  return from_array_vector<a>(v.size, ((_vector_s<a> *)v)->contents, arena);
 }
 
 // Append an element to the end of a vector
@@ -107,7 +96,7 @@ static void insert_vector(vector<a> v, size_t idx, a elem) {
 
 // Append all the elements of another vector to a vector
 template<typename a>
-static void extend_vector(vector<a> v1, vector<a> v2) {
+static vector<a> extend_vector(vector<a> v1, vector<a> v2) {
   size_t v1_size = v1.size;
   size_t v2_size = v2.size;
   resize_vector(v1, v1_size + v2_size);
@@ -115,6 +104,7 @@ static void extend_vector(vector<a> v1, vector<a> v2) {
     // Note that this uses overloaded =
     v1[i + v1_size] = v2[i];
   }
+  return v1;
 }
 
 // Check if two vectors are equal
@@ -134,17 +124,33 @@ static _Bool equals_vector(vector<a> v1, vector<a> v2) {
 
 // Convert a vector to a string representation
 template<typename a>
-static string show_vector(vector<a> v) {
-  if (v.size == 0)
-    return str("[]");
-
-  string result = "[" + show(v[0]);
-  
-  for (size_t i = 1; i < v.size; i++) {
-    result += ", " + show(v[i]);
+static size_t show_vector_max_len(vector<a> v) {
+  size_t result = 2;
+  if (v.size > 0) {
+    result += showMaxLen(v[0]);
   }
-  
-  return result + "]";
+  for (size_t i = 1; i < v.size; i++) {
+    result += 2 + showMaxLen(v[i]);
+  }
+  return result;
+}
+
+template<typename a>
+static size_t show_vector_to_buf(char *buf, vector<a> v) {
+  if (v.size == 0)
+    return sprintf(buf, "[]");
+
+  size_t len = 0;
+  buf[len++] = '[';
+
+  len += showToBuf(buf + len, v[0]);
+  for (size_t i = 1; i < v.size; i++) {
+    len += sprintf(buf + len, ", ");
+    len += showToBuf(buf + len, v[i]);
+  }
+
+  buf[len++] = ']';
+  return len;
 }
 
 #endif

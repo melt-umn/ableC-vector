@@ -1,36 +1,32 @@
 grammar edu:umn:cs:melt:exts:ableC:vector:abstractsyntax;
 
-import edu:umn:cs:melt:ableC:abstractsyntax:overloadable;
-
 abstract production vectorTypeExpr 
 top::BaseTypeExpr ::= q::Qualifiers sub::TypeName
 {
   top.pp = pp"${terminate(space(), q.pps)}vector<${sub.pp}>";
-  propagate controlStmtContext;
   
   top.inferredArgs := sub.inferredArgs;
   sub.argumentType =
     case top.argumentType of
-    | extType(_, vectorType(t)) -> t
+    | extType(_, vectorType(t)) -> ^t
     | _ -> errorType()
     end;
   
-  sub.env = globalEnv(top.env);
-  
   local localErrors::[Message] =
-    sub.errors ++ checkVectorHeaderDef("_vector_s", top.env);
-  
-  forwards to
-    if !null(localErrors)
-    then errorTypeExpr(localErrors)
-    else
-      injectGlobalDeclsTypeExpr(
-        foldDecl(
-          sub.decls ++
-          [templateTypeExprInstDecl(
-            q, name("_vector_s"),
-            consTemplateArg(typeTemplateArg(sub.typerep), nilTemplateArg()))]),
-        extTypeExpr(q, vectorType(sub.typerep)));
+    sub.errors ++ checkVectorHeaderDef(top.env);
+
+  forward fwrd =
+    injectGlobalDeclsTypeExpr(
+      consDecl(
+        typePreDecls(@sub),
+        consDecl(
+          templateTypeExprInstDecl(
+            ^q, name("_vector_s"),
+            consTemplateArg(typeTemplateArg(sub.typerep), nilTemplateArg())),
+          nilDecl())),
+      extTypeExpr(@q, vectorType(sub.typerep)));
+
+  forwards to if null(localErrors) then @fwrd else errorTypeExpr(localErrors);
 }
 
 abstract production vectorType
@@ -38,6 +34,8 @@ top::ExtType ::= sub::Type
 {
   propagate canonicalType;
   top.pp = pp"vector<${sub.lpp}${sub.rpp}>";
+
+  local templateArgs::TemplateArgs = consTemplateArg(typeTemplateArg(@sub), nilTemplateArg());
   top.host =
     pointerType(
       top.givenQualifiers,
@@ -45,45 +43,39 @@ top::ExtType ::= sub::Type
         nilQualifier(),
         refIdExtType(
           structSEU(),
-          just(templateMangledName("_vector_s", foldTemplateArg([typeTemplateArg(sub)]))),
-          templateMangledRefId("_vector_s", foldTemplateArg([typeTemplateArg(sub)])))));
+          just(templateArgs.templateMangledName("_vector_s")),
+          templateArgs.templateMangledRefId("_vector_s"))));
   top.mangledName = s"vector_${sub.mangledName}_";
   top.isEqualTo =
     \ other::ExtType ->
       case other of
-        vectorType(otherSub) -> compatibleTypes(sub, otherSub, false, false)
+        vectorType(otherSub) -> compatibleTypes(^sub, ^otherSub, false, false)
       | _ -> false
       end;
-  
-  top.newProd = just(newVector(sub, _));
-  top.deleteProd = just(deleteVector);
+
   top.lAddProd = just(concatVector);
   top.rAddProd = just(concatVector);
   -- Overload for += automatically inferred from above
   top.lEqualsProd = just(equalsVector);
   top.rEqualsProd = just(equalsVector);
   -- Overload for != automatically inferred from above
-  top.addressOfArraySubscriptProd = just(addressOfSubscriptVector);
-  -- Overloads for [], []= automatically inferred from above
-  top.callMemberProd = just(callMemberVector);
+  top.arraySubscriptProd = just(subscriptVector);
+  top.memberCallProd = just(callMemberVector);
   top.memberProd = just(memberVector);
   top.objectInitProd = just(vectorInitializer);
   
-  top.showErrors =
-    \ env::Decorated Env ->
-      sub.showErrors(env) ++
-      checkVectorHeaderDef("show_vector", env);
-  top.showProd =
-    \ e::Expr -> ableC_Expr { inst show_vector<$directTypeExpr{sub}>($Expr{e}) };
+  top.showErrors := \ env::Env -> sub.showErrors(env) ++ checkVectorHeaderDef(env);
+  top.showMaxLenProd = \ e::Expr -> ableC_Expr {
+    inst show_vector_max_len<$directTypeExpr{^sub}>($Expr{e})
+  };
+  top.showProd = \ buf::Expr e::Expr -> ableC_Expr {
+    inst show_vector_to_buf<$directTypeExpr{^sub}>($Expr{buf}, $Expr{e})
+  };
 }
 
 -- Find the sub-type of a vector type
-function vectorSubType
-Type ::= t::Type
-{
-  return
-    case t of
-      extType(_, vectorType(sub)) -> sub
-    | _ -> errorType()
-    end;
-}
+fun vectorSubType Type ::= t::Type =
+  case t of
+  | extType(_, vectorType(sub)) -> ^sub
+  | _ -> errorType()
+  end;
