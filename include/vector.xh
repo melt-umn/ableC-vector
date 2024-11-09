@@ -42,8 +42,8 @@ static void resize_vector(vector<a> v, size_t new_size) {
 template<typename a>
 static vector<a> new_vector(size_t size, a init, arena_t arena) {
   size_t capacity = size * 2;
-  vector<a> result = (vector<a>)arena_alloc(arena, sizeof(_vector_s<a>));
-  a *contents = arena_alloc(arena, sizeof(a) * capacity + 1);
+  vector<a> result = (vector<a>)arena_malloc(arena, sizeof(_vector_s<a>));
+  a *contents = arena_malloc(arena, sizeof(a) * capacity + 1);
   *(_vector_s<a> *)result = (_vector_s<a>){size, capacity, arena, contents};
   for (size_t i = 0; i < size; i++) {
     contents[i] = init;
@@ -55,8 +55,8 @@ static vector<a> new_vector(size_t size, a init, arena_t arena) {
 template<typename a>
 static vector<a> from_array_vector(size_t size, a arr[size], arena_t arena) {
   size_t capacity = size * 2;
-  vector<a> result = (vector<a>)arena_alloc(arena, sizeof(_vector_s<a>));
-  a *contents = arena_alloc(arena, sizeof(a) * capacity + 1);
+  vector<a> result = (vector<a>)arena_malloc(arena, sizeof(_vector_s<a>));
+  a *contents = arena_malloc(arena, sizeof(a) * capacity + 1);
   *(_vector_s<a> *)result = (_vector_s<a>){size, capacity, arena, contents};
   memcpy(contents, arr, sizeof(a) * size);
   return result;

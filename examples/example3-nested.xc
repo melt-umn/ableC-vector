@@ -3,9 +3,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <gc.h>
+
+arena_t ar;
+allocate_using arena ar;
 
 int main(int argc, char **argv) {
+  ar = arena_create();
+
   vector<vector<string>> elems = {{str("abcd")}};
 
   for (int i = 1; i < 7; i++) {

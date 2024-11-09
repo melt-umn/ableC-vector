@@ -5,16 +5,16 @@
 #include <stdlib.h>
 
 int main(int argc, char **argv) {
-  vector<int> a = vec(malloc, realloc, free) [1, 2, 3];
+  allocate_using heap;
+  
+  vector<int> a = vec[1, 2, 3];
   printf("a: %s\n", show(a).text);
-  vector<int> b = vec(malloc, realloc, free) [4, 5, 6];
+  vector<int> b = vec [4, 5, 6];
   printf("b: %s\n", show(b).text);
   vector<int> c = a + b;
   printf("c: %s\n", show(c).text);
   printf("a: %s\n", show(a).text);
-  vector<int> old_a = a;
   a += b;
-  delete old_a;
   printf("a: %s\n", show(a).text);
   b[1] += 7;
   b.append(6);
@@ -33,6 +33,10 @@ int main(int argc, char **argv) {
   printf("e: %s\n", show(e).text);
   e.extend(e);
   printf("e: %s\n", show(e).text);
+  vector<int> f = new vector<int>(4, 17);
+  printf("f: %s\n", show(f).text);
+  vector<int> g = {1, 2, 3, 4, 5};
+  printf("g: %s\n", show(g).text);
   
   if (a != c)
     return 1;
@@ -48,12 +52,9 @@ int main(int argc, char **argv) {
     return 6;
   if (e[20] != 23)
     return 7;
-  
-  delete a;
-  delete b;
-  delete c;
-  delete d;
-  delete e;
-  
+  if (f[2] != 17)
+    return 8;
+  if (g[2] != 3)
+    return 9;
   return 0;
 }
