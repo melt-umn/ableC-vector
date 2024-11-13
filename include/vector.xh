@@ -150,6 +150,7 @@ static size_t show_vector_to_buf(char *buf, vector<a> v) {
   }
 
   buf[len++] = ']';
+  buf[len] = '\0';
   return len;
 }
 
