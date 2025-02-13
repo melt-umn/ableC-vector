@@ -53,12 +53,12 @@ static vector<a> new_vector(size_t size, a init, arena_t arena) {
 
 // Create a new vector from an array
 template<typename a>
-static vector<a> from_array_vector(size_t size, a arr[size], arena_t arena) {
+static vector<a> from_array_vector(size_t size, a arr[], arena_t arena) {
   size_t capacity = size * 2;
   vector<a> result = (vector<a>)arena_malloc(arena, sizeof(_vector_s<a>));
   a *contents = arena_malloc(arena, sizeof(a) * capacity + 1);
   *(_vector_s<a> *)result = (_vector_s<a>){size, capacity, arena, contents};
-  memcpy(contents, arr, sizeof(a) * size);
+  if (size) memcpy(contents, arr, sizeof(a) * size);
   return result;
 }
 

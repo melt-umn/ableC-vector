@@ -134,7 +134,14 @@ top::Expr ::= sub::TypeName e::Exprs
   local localErrors::[Message] = checkVectorHeaderDef(top.env);
 
   nondecorated local fwrd::Expr =
-    ableC_Expr {
+    if e.count == 0
+    then ableC_Expr {
+      inst new_vector<$directTypeExpr{sub.typerep}>(
+        0,
+        ($directTypeExpr{sub.typerep})$Expr{defaultInitExpr(sub.typerep.host)},
+        $Expr{currentArena()})
+    }
+    else ableC_Expr {
       inst from_array_vector<$directTypeExpr{sub.typerep}>(
         $Expr{mkIntConst(e.count)},
         ($directTypeExpr{sub.typerep}[]){
