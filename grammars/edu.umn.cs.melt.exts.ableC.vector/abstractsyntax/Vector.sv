@@ -21,7 +21,7 @@ top::Expr ::=
   top.pp = pp"current_arena";
   forwards to
     case top.env.allocContext of
-    | arenaAllocContext(a) :: _ -> declRefExpr(^a)
+    | arenaAllocContext(a) :: _ -> ^a
     | _ -> errorExpr([errFromOrigin(top, "An arena allocator must be specified for vector creation")])
     end;
 }
