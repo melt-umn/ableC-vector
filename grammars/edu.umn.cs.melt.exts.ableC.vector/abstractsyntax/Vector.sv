@@ -90,14 +90,13 @@ top::Initializer ::= @i::InitList
   local expectedTypes::[Type] = ^subType :: expectedTypes;
 
   local localErrors::[Message] = i.errors;
-  forward fwrd = transformObjectInitializer(
-    i, expectedTypes,
-    exprInitializer(
-      constructVector(
-        typeName(subType.baseTypeExpr, subType.typeModifierExpr),
-        foldExpr(i.vectorInitExprs))));
+  nondecorated local impl::Expr = constructVector(
+    typeName(subType.baseTypeExpr, subType.typeModifierExpr),
+    foldExpr(i.vectorInitExprs));
 
-  forwards to if null(localErrors) then @fwrd else exprInitializer(errorExpr(localErrors));
+  forwards to transformObjectInitializer(
+    i, expectedTypes,
+    exprInitializer(if null(localErrors) then impl else errorExpr(localErrors)));
 }
 
 abstract production vectorCompoundLiteral implements CompoundLiteral
@@ -109,13 +108,13 @@ top::Expr ::= @ty::TypeName @i::InitList
   local expectedTypes::[Type] = ^subType :: expectedTypes;
 
   local localErrors::[Message] = i.errors;
-  forward fwrd = transformCompoundLiteral(
-    ty, i, expectedTypes,
-    constructVector(
-      typeName(subType.baseTypeExpr, subType.typeModifierExpr),
-      foldExpr(i.vectorInitExprs)));
+  nondecorated local impl::Expr = constructVector(
+    typeName(subType.baseTypeExpr, subType.typeModifierExpr),
+    foldExpr(i.vectorInitExprs));
 
-  forwards to if null(localErrors) then @fwrd else errorExpr(localErrors);
+  forwards to transformCompoundLiteral(
+    ty, i, expectedTypes,
+    if null(localErrors) then impl else errorExpr(localErrors));
 }
 
 monoid attribute vectorInitExprs::[Expr] with [], ++ occurs on InitList, Init;
